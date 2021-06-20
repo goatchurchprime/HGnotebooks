@@ -270,3 +270,95 @@ def winguv2xyz(uvx, uvy, sections, zvals):
     p1 = p01*(1-ropepointlamda) + p11*ropepointlamda
     p = p0*(1-lambdaCalong) + p1*lambdaCalong
     return P3(p[0], p[1], z)
+
+
+
+#
+# The batch surface flattener from FreeCAD
+#
+import sys, numpy, json, os, shutil, subprocess
+
+freecadappimage = "/home/julian/executables/FreeCAD_0.19-24267-Linux-Conda_glibc2.12-x86_64.AppImage"
+# fetch from: wget https://github.com/FreeCAD/FreeCAD/releases/download/0.19_pre/FreeCAD_0.19-24267-Linux-Conda_glibc2.12-x86_64.AppImage
+
+def trimeshesflattener(surfacemeshes):
+    surfacemeshfile = "surfacemeshfile.json"
+    flatmeshfile = "flattenedmesh.json"
+
+    if os.path.exists(flatmeshfile):
+        os.remove(flatmeshfile)
+
+    jsurfacemeshes = [ { "pts":surfacemesh["pts"].tolist(), "tris":surfacemesh["tris"].tolist() }\
+                          for surfacemesh in surfacemeshes ]
+    json.dump(jsurfacemeshes, open(surfacemeshfile, "w"))
+
+
+    fccode = """import flatmesh
+import sys, numpy, json, os
+
+surfacemeshfile = "%s"
+flatmeshfile = "%s"
+scaleupunits = 1024.0
+
+surfacemeshes = json.load(open(surfacemeshfile))
+flatmeshespts = [ ]
+for surfacemesh in surfacemeshes:
+    pts = scaleupunits*numpy.array(surfacemesh["pts"])
+    tris = numpy.array(surfacemesh["tris"])
+    flattener = flatmesh.FaceUnwrapper(pts, tris)
+    flattener.findFlatNodes(10, 0.95)
+    fnodes = (1/scaleupunits)*flattener.ze_nodes
+    print("mesh (pts=%%d, tris=%%d) flattened" %% (len(pts), len(tris)))
+    flatmeshespts.append(fnodes.tolist())
+
+json.dump(flatmeshespts, open(flatmeshfile, "w"))
+
+""" % (surfacemeshfile, flatmeshfile)
+
+    a = subprocess.run([freecadappimage, "-c"], input=fccode.encode(), capture_output=True)
+    #print(a.stderr.decode())
+    print(a.stdout.decode())
+
+    flatmeshes = json.load(open(flatmeshfile))
+    return flatmeshes
+
+
+#
+# All in one batch poly triangulation, projection and flattener
+#
+import pygmsh
+
+def triprojpolyflattener(nodes, polys, sections, zvals, mesh_size):
+    surfacemeshes = [ ]
+    for poly in polys:
+        npoly = [ [nodes[p][0], nodes[p][1]]  for p in poly ]
+        with pygmsh.geo.Geometry() as g:
+            g.add_polygon(npoly, mesh_size=mesh_size)
+            mesh = g.generate_mesh()
+
+        pts = [ winguv2xyz(p[0], p[1], sections, zvals)  for p in mesh.points ]
+        tris = mesh.cells_dict["triangle"]
+        surfacemeshes.append({"pts":numpy.array(pts), "tris":tris })
+    flatmeshes = trimeshesflattener(surfacemeshes)
+    for i, flatmesh in enumerate(flatmeshes):
+        surfacemeshes[i]["fpts"] = numpy.array(flatmesh)
+    return surfacemeshes
+
+
+def fullflattriareas(surfacemesh):
+    ptsP = [ P3(*p)  for p in surfacemesh["pts"] ]
+    fptsP = [ P2(*p)  for p in surfacemesh["fpts"] ]
+    tris = surfacemesh["tris"]
+
+    def P2Cross(a, b):
+        return a.u*b.v - b.u*a.v
+
+    triareas = [ ]
+    for tri in tris:
+        p0, p1, p2 = ptsP[tri[0]], ptsP[tri[1]], ptsP[tri[2]]
+        parea = 0.5*P3.Cross(p1 - p0, p2 - p0).Len()
+        f0, f1, f2 = fptsP[tri[0]], fptsP[tri[1]], fptsP[tri[2]]
+        farea = 0.5*abs(P2Cross(f1 - f0, f2 - f0))
+        #areachange = farea/parea
+        triareas.append([parea, farea])
+    return numpy.array(triareas)
