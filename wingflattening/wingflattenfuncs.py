@@ -123,8 +123,8 @@ class P3(namedtuple('P3', ['x', 'y', 'z'])):
 # Load the parametric trim lines
 #
 import json
-def loadwingtrimlines():
-    lnodes, paths = json.load(open("segmentedwing.txt"))
+def loadwingtrimlines(fname):
+    lnodes, paths = json.load(open(fname))
     nodes = { }
     for k, v in lnodes.items():
         v = eval(v)
@@ -226,18 +226,17 @@ def trimlinestopolygons(nodes, paths):
 #
 # Wing geometry: maps uv in [0,1],[0,1] -> XYZ points on wing surface
 #
-wingmeshuvudivisions = 19
-wingmeshuvvdivisions = 67
 import csv
 
-def loadwinggeometry():
-    r = csv.reader(open("Wing XYZ geometry.csv"))
+def loadwinggeometry(fname):
+    r = csv.reader(open(fname))
     k = list(r)
-    assert len(k) == 70
+    wingmeshuvudivisions = eval(k[0][-3])
+    assert (wingmeshuvudivisions ==len(k[0])/3-1), 'Section numbering incorrect'
 
-    sections = [ ]
-    zvals = [ ]
-    for i in range(1, 60, 3):
+    sections = []
+    zvals = []
+    for i in range(0, (wingmeshuvudivisions*3)+2, 3):
         pts = [ ]
         z = float(k[2][i+1])
         for j in range(2, 70):
@@ -249,17 +248,22 @@ def loadwinggeometry():
     return sections, zvals
 
 def wingwireframe(sections, zvals):
+    wingmeshuvvdivisions = len(sections[0])
     X = numpy.array([[p[0]  for p in pts]  for pts in sections])
     Y = numpy.array([[p[1]  for p in pts]  for pts in sections])
-    Z = numpy.array([[z  for i in range(wingmeshuvvdivisions+1)]  for z in zvals])
+    Z = numpy.array([[z  for i in range(wingmeshuvvdivisions)]  for z in zvals])
     return X, Y, Z
 
 def winguv2xyz(uvx, uvy, sections, zvals):
+    wingmeshuvudivisions = len(sections)-1
+    #print(wingmeshuvudivisions)
+    wingmeshuvvdivisions = len(sections[0])
+    #print(wingmeshuvvdivisions)
     usecl = uvx*wingmeshuvudivisions
     usec = int(max(0, min(wingmeshuvudivisions-1, math.floor(usecl))))
     ropepointlamda = usecl - usec
-    aroundsegmentl = uvy*wingmeshuvvdivisions
-    aroundsegment = int(max(0, min(wingmeshuvvdivisions-1, math.floor(aroundsegmentl))))
+    aroundsegmentl = uvy*wingmeshuvvdivisions-1
+    aroundsegment = int(max(0, min(wingmeshuvvdivisions-2, math.floor(aroundsegmentl))))
     lambdaCalong = aroundsegmentl - aroundsegment
     p00 = sections[usec][aroundsegment]
     p01 = sections[usec][aroundsegment+1]
@@ -278,7 +282,7 @@ def winguv2xyz(uvx, uvy, sections, zvals):
 #
 import sys, numpy, json, os, shutil, subprocess
 
-freecadappimage = "/home/julian/executables/FreeCAD_0.19-24267-Linux-Conda_glibc2.12-x86_64.AppImage"
+freecadappimage = "/home/timbo/software/FreeCAD_0.19-24054-Linux-Conda_glibc2.12-x86_64.AppImage"
 # fetch from: wget https://github.com/FreeCAD/FreeCAD/releases/download/0.19_pre/FreeCAD_0.19-24267-Linux-Conda_glibc2.12-x86_64.AppImage
 
 def trimeshesflattener(surfacemeshes):
