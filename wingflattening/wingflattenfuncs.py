@@ -228,7 +228,7 @@ def trimlinestopolygons(nodes, paths):
 #
 import csv
 
-def loadwinggeometry(fname):
+def loadwinggeometry(fname, fac=1.0):
     r = csv.reader(open(fname))
     k = list(r)
     wingmeshuvudivisions = eval(k[0][-3])
@@ -241,8 +241,8 @@ def loadwinggeometry(fname):
         z = float(k[2][i+1])
         for j in range(2, 70):
             assert (z == float(k[j][i+1]))
-            pts.append(P2(float(k[j][i]), float(k[j][i+2])))
-        zvals.append(z)
+            pts.append(P2(float(k[j][i]), float(k[j][i+2]))*fac)
+        zvals.append(z*fac)
         sections.append(pts)
     assert(len(sections) == wingmeshuvudivisions+1)
     return sections, zvals
@@ -366,3 +366,107 @@ def fullflattriareas(surfacemesh):
         #areachange = farea/parea
         triareas.append([parea, farea])
     return numpy.array(triareas)
+
+
+
+class WingShape:
+    def __init__(self, fname):
+        self.Isect = 7  # Fix the section all rectangle unwrapping is relative to
+        self.sections, self.zvals = loadwinggeometry(fname, 0.001)
+        self.nsections = len(self.zvals)
+        assert self.nsections == len(self.sections)
+        self.nchorddivs = len(self.sections[0])
+        assert self.nchorddivs == len(self.sections[-1])
+        self.sectionchordlengths = [ ]
+        self.sectionchordranges = [ ]
+        for section in self.sections:
+            chordlengths = [ 0 ]
+            for p0, p1 in zip(section, section[1:]):
+                chordlengths.append(chordlengths[-1] + (p0-p1).Len())
+            self.sectionchordlengths.append(chordlengths)
+            self.sectionchordranges.append((-chordlengths[-1]*0.5, chordlengths[-1]*0.5))
+        self.leadingedgelengths = [ 0 ]
+        for i in range(1, self.nsections):
+            p0 = P3.ConvertGZ(self.sectionchordeval(i-1, 0), self.zvals[i-1])
+            p1 = P3.ConvertGZ(self.sectionchordeval(i, 0), self.zvals[i])
+            self.leadingedgelengths.append(self.leadingedgelengths[-1] + (p0-p1).Len())
+        self.urange = self.sectionchordranges[self.Isect]
+        self.vrange = (self.leadingedgelengths[0], self.leadingedgelengths[-1])
+        
+    def sectionchordlengthconv(self, i, s):
+        chordlengths = self.sectionchordlengths[i]
+        ls = s - self.sectionchordranges[i][0]
+        j0, j1 = 0, len(chordlengths)-1
+        while j1 - j0 >= 2:
+            j = (j1 + j0)//2
+            if ls <= chordlengths[j]:
+                j1 = j
+            else:
+                j0 = j
+        return j0 + (ls-chordlengths[j0])/(chordlengths[j1]-chordlengths[j0])
+        
+    def sectionchordevalI(self, i, u):
+        j = max(0, min(self.nchorddivs-2, int(u)))
+        l = u - j
+        p0 = self.sections[i][j]
+        p1 = self.sections[i][j+1]
+        return p0*(1-l) + p1*l
+
+    def sectionchordeval(self, i, s):
+        return self.sectionchordevalI(i, self.sectionchordlengthconv(self.Isect, s))
+
+    def leadingedgelengthconv(self, t):
+        j0, j1 = 0, len(self.leadingedgelengths)-1
+        while j1 - j0 >= 2:
+            j = (j1 + j0)//2
+            if t <= self.leadingedgelengths[j]:
+                j1 = j
+            else:
+                j0 = j
+        return j0 + (t-self.leadingedgelengths[j0])/(self.leadingedgelengths[j1]-self.leadingedgelengths[j0])
+
+    def sevalconv(self, p):
+        return P2(self.sectionchordlengthconv(self.Isect, p[0]), self.leadingedgelengthconv(p[1]))
+
+    def sevalI(self, p):
+        i = max(0, min(self.nsections-2, int(p[1])))
+        m = p[1] - i
+        p0 = P3.ConvertGZ(self.sectionchordevalI(i, p[0]), self.zvals[i])
+        p1 = P3.ConvertGZ(self.sectionchordevalI(i+1, p[0]), self.zvals[i+1])
+        return p0*(1-m) + p1*m
+        
+    def seval(self, p):
+        return self.sevalI(self.sevalconv(p))
+
+    def sevalconvO(self, p):
+        chordlengths = self.sectionchordlengths[self.Isect]
+        usecl = p.u*(self.nchorddivs-1)
+        usec = max(0, min(self.nchorddivs-2, int(math.floor(usecl))))
+        ur = usecl - usec
+        u = chordlengths[usec]*(1-ur) + chordlengths[usec+1]*ur
+        vsecl = p.v*(self.nsections-1)
+        vsec = max(0, min(self.nsections-2, int(math.floor(vsecl))))
+        vr = vsecl - vsec
+        v = self.leadingedgelengths[vsec]*(1-vr) + self.leadingedgelengths[vsec+1]*vr
+        return P2(u+self.sectionchordranges[self.Isect][0], v)
+
+
+def exportpolygonsobj(filepath, nodes, paths, wingshape, mesh_size):    
+    polys = trimlinestopolygons(nodes, paths)
+    f = open(filepath, 'w')
+    f.write("# OBJ file\n")
+    joff = 1
+    for i, poly in enumerate(polys):
+        npoly = [ [nodes[p][0], nodes[p][1]]  for p in poly ]
+        with pygmsh.geo.Geometry() as g:
+            g.add_polygon(npoly, mesh_size=mesh_size)
+            mesh = g.generate_mesh()
+            pts = numpy.array([wingshape.seval(p)  for p in mesh.points])
+            f.write("o patch%d\n" % (10+i))
+            for v in pts:
+                f.write("v %.4f %.4f %.4f\n" % tuple(v))
+            for t in mesh.cells_dict["triangle"]:
+                f.write("f %d %d %d\n" % (t[0]+joff,t[1]+joff,t[2]+joff))
+            joff += len(pts)
+    f.close()
+
