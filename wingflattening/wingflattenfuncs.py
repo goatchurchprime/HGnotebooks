@@ -330,7 +330,10 @@ json.dump(flatmeshespts, open(flatmeshfile, "w"))
 #
 # All in one batch poly triangulation, projection and flattener
 #
-import pygmsh
+try:
+    import pygmsh
+except ImportError as e:
+    print("No pygmsh here")
 
 def triprojpolyflattener(nodes, polys, sections, zvals, mesh_size):
     surfacemeshes = [ ]
