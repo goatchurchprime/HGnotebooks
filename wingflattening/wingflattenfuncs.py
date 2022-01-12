@@ -124,7 +124,7 @@ class P3(namedtuple('P3', ['x', 'y', 'z'])):
 # Load the parametric trim lines
 #
 import json
-def loadwingtrimlines(fname):
+def loadwingtrimlinesDeprecated(fname):
     lnodes, paths = json.load(open(fname))
     nodes = { }
     for k, v in lnodes.items():
