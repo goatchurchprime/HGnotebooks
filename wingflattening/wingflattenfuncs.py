@@ -430,13 +430,13 @@ class WingShape:
         return j0 + (t-self.leadingedgelengths[j0])/(self.leadingedgelengths[j1]-self.leadingedgelengths[j0])
 
     def sevalconv(self, p):
-        return P2(self.sectionchordlengthconv(self.Isect, p[0]), self.leadingedgelengthconv(p[1]))
+        return P2(self.leadingedgelengthconv(p[0]), self.sectionchordlengthconv(self.Isect, p[1]))
 
     def sevalI(self, p):
-        i = max(0, min(self.nsections-2, int(p[1])))
-        m = p[1] - i
-        p0 = P3.ConvertGZ(self.sectionchordevalI(i, p[0]), self.zvals[i])
-        p1 = P3.ConvertGZ(self.sectionchordevalI(i+1, p[0]), self.zvals[i+1])
+        i = max(0, min(self.nsections-2, int(p[0])))
+        m = p[0] - i
+        p0 = P3.ConvertGZ(self.sectionchordevalI(i, p[1]), self.zvals[i])
+        p1 = P3.ConvertGZ(self.sectionchordevalI(i+1, p[1]), self.zvals[i+1])
         return p0*(1-m) + p1*m
         
     def seval(self, p):
