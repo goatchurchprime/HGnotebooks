@@ -20,7 +20,7 @@ class P2(namedtuple('P2', ['u', 'v'])):
     def __neg__(self):
         return P2(-self.u, -self.v)
     def __rmul__(self, a):
-        raise TypeError
+        raise TypeError("Please use left multiplication")
     def Lensq(self):
         return self.u*self.u + self.v*self.v
     def Len(self):
@@ -180,8 +180,8 @@ def trimlinestopolygons(nodes, paths):
             opvisits2.append(-1)
             opvisits2.append(-1)
 
-        for pathvectorseq in Lpathvectorseq.values():
-            pathvectorseq.sort()
+    for pathvectorseq in Lpathvectorseq.values():
+        pathvectorseq.sort()
 
     polys = [ ]
     linearpaths = [ ]
@@ -458,6 +458,8 @@ class WingShape:
     def clampuv(self, p):
         return P2(max(self.urange[0], min(self.urange[1], p.u)), 
                   max(self.vrange[0], min(self.vrange[1], p.v)))
+    def uvonboundary(self, p):
+        return p.u == self.urange[0] or p.u == self.urange[1] or p.v == self.vrange[0] or p.v == self.vrange[1]
 
 
 def exportpolygonsobj(filepath, nodes, paths, wingshape, mesh_size):    
