@@ -62,6 +62,7 @@ class P2(namedtuple('P2', ['u', 'v'])):
     def ConvertLZ(p):  
         return P2(p.x, p.y)
 
+    
 
 class P3(namedtuple('P3', ['x', 'y', 'z'])):
     __slots__ = ()
@@ -393,8 +394,8 @@ class WingShape:
             p0 = P3.ConvertGZ(self.sectionchordeval(i-1, 0), self.zvals[i-1])
             p1 = P3.ConvertGZ(self.sectionchordeval(i, 0), self.zvals[i])
             self.leadingedgelengths.append(self.leadingedgelengths[-1] + (p0-p1).Len())
-        self.urange = self.sectionchordranges[self.Isect]
-        self.vrange = (self.leadingedgelengths[0], self.leadingedgelengths[-1])
+        self.urange = (self.leadingedgelengths[0], self.leadingedgelengths[-1])
+        self.vrange = self.sectionchordranges[self.Isect]
         
     def sectionchordlengthconv(self, i, s):
         chordlengths = self.sectionchordlengths[i]
@@ -442,16 +443,21 @@ class WingShape:
         return self.sevalI(self.sevalconv(p))
 
     def sevalconvO(self, p):
-        chordlengths = self.sectionchordlengths[self.Isect]
-        usecl = p.u*(self.nchorddivs-1)
-        usec = max(0, min(self.nchorddivs-2, int(math.floor(usecl))))
-        ur = usecl - usec
-        u = chordlengths[usec]*(1-ur) + chordlengths[usec+1]*ur
-        vsecl = p.v*(self.nsections-1)
-        vsec = max(0, min(self.nsections-2, int(math.floor(vsecl))))
+        uniformchordlength = self.sectionchordlengths[self.Isect]
+        vsecl = p.v*(self.nchorddivs-1)
+        vsec = max(0, min(self.nchorddivs-2, int(math.floor(vsecl))))
         vr = vsecl - vsec
-        v = self.leadingedgelengths[vsec]*(1-vr) + self.leadingedgelengths[vsec+1]*vr
-        return P2(u+self.sectionchordranges[self.Isect][0], v)
+        v = uniformchordlength[vsec]*(1-vr) + uniformchordlength[vsec+1]*vr
+        
+        usecl = p.u*(self.nsections-1)
+        usec = max(0, min(self.nsections-2, int(math.floor(usecl))))
+        ur = usecl - usec
+        u = self.leadingedgelengths[usec]*(1-ur) + self.leadingedgelengths[usec+1]*ur
+        return P2(u, v+self.sectionchordranges[self.Isect][0])
+
+    def clampuv(self, p):
+        return P2(max(self.urange[0], min(self.urange[1], p.u)), 
+                  max(self.vrange[0], min(self.vrange[1], p.v)))
 
 
 def exportpolygonsobj(filepath, nodes, paths, wingshape, mesh_size):    
