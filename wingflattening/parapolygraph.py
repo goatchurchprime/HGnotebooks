@@ -184,3 +184,11 @@ class ParamPolyGraph:
                 polys.append(poly)
         return polys
 
+    def splinedpolypoints(self, polynodes):
+        polyloop = [ ]
+        for i in range(len(polynodes)):
+            n0 = polynodes[i]
+            n1 = polynodes[(i+1) % len(polynodes)]
+            polyloop.append(self.nodes[n0])
+            polyloop.extend(self.getsplinemidnodes(n0, n1))
+        return polyloop

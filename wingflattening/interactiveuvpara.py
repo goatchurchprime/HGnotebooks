@@ -100,9 +100,10 @@ def makeinteractivefigure(lfig, lparapolygraph):
 
     axpara.autoscale()
 
-    axres = plt.axes([0.15, 0.8, 0.12, 0.03])
-    bres = Button(axres, 'Spline')
-    bres.on_clicked(buttonSpline)
+    #axres = plt.axes([0.15, 0.8, 0.12, 0.03])
+    #bres = Button(axres, 'Spline')
+    #bres.on_clicked(buttonSpline)
+    
     fig.canvas.mpl_connect('button_press_event', button_press_callback)
     fig.canvas.mpl_connect('button_release_event', button_release_callback)
     fig.canvas.mpl_connect('motion_notify_event', motion_notify_callback)
