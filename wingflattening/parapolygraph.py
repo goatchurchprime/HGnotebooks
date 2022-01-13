@@ -23,9 +23,9 @@ def loadwingtrimlinesDeprecated(fname):
 
 
 class ParamPolyGraph:
-    def __init__(self, wingshape, trimfile, deprecatedTrimFile=False):
-        self.legsampleleng = 0.05
-        self.splineweight = 0.21
+    def __init__(self, wingshape, trimfile, deprecatedTrimFile=False, splineweight=0.21, legsampleleng=0.05):
+        self.legsampleleng = legsampleleng
+        self.splineweight = legsampleleng
         self.wingshape = wingshape
         if deprecatedTrimFile:
             snodes, self.paths = loadwingtrimlinesDeprecated(trimfile)
@@ -77,17 +77,22 @@ class ParamPolyGraph:
         p0 = self.nodes[n0]
         p1 = self.nodes[n1]
         sleg = [ ]
-        m0 = self.tangentvec(n0, n1)*self.splineweight
-        m1 = -self.tangentvec(n1, n0)*self.splineweight
-        N = max(1, int((p0 - p1).Len()/self.legsampleleng + 0.75))
+        sl = (p0 - p1).Len()
+        # Loop happens if (m0 + m1) > (p1 - p0)*6, so scaling weight by distance (must be less than 3) is valid 
+        m0 = self.tangentvec(n0, n1)*self.splineweight*sl
+        m1 = -self.tangentvec(n1, n0)*self.splineweight*sl
+        N = max(1, int(sl/self.legsampleleng + 0.75))
         for i in range(1, N):
             t = i*1.0/N
             t2 = t*t
             t3 = t2*t
-            p = p0*(2*t3 - 3*t2 +1) + m0*(t3 - 2*t2 + t) + p1*(-2*t3 + 3*t2) + m1*(t3 - t2)
+            p = p0*(2*t3 - 3*t2 + 1) + m0*(t3 - 2*t2 + t) + p1*(-2*t3 + 3*t2) + m1*(t3 - t2)
             sleg.append(p)
         return ((n0, n1), sleg)
 
+
+    
+    
     def makeallsplinemidnodes(self):
         self.neighbournodes = dict((nn, [])  for nn in self.nodes)
         for i in range(0, len(self.paths), 2):
@@ -202,19 +207,22 @@ class ParamPolyGraph:
     
     def surfacemesheslist(self, polysnodes, mesh_size):
         surfacemeshes = [ ]
-        for polynodes in polysnodes:
+        for i, polynodes in enumerate(polysnodes):
             polyloop = self.splinedpolypoints(polynodes)
             with pygmsh.geo.Geometry() as g:
                 g.add_polygon(polyloop, mesh_size=mesh_size)
                 mesh = g.generate_mesh()
             pts = numpy.array([ self.wingshape.seval(p)  for p in mesh.points ])
-            surfacemesh = { "polynodes":polynodes, 
-                            "polyloop":polyloop,
-                            "uvpts":mesh.points, 
-                            "pts":numpy.array(pts),
-                            "tris":mesh.cells_dict["triangle"]
-                          }
-            surfacemeshes.append(surfacemesh)
+            if "triangle" in mesh.cells_dict:
+                surfacemesh = { "polynodes":polynodes, 
+                                "polyloop":polyloop,
+                                "uvpts":mesh.points, 
+                                "pts":numpy.array(pts),
+                                "tris":mesh.cells_dict["triangle"]
+                              }
+                surfacemeshes.append(surfacemesh)
+            else:
+                print("Polygon %d untriangulatable" % i)
         return surfacemeshes
     
     
