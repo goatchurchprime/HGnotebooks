@@ -25,7 +25,7 @@ def loadwingtrimlinesDeprecated(fname):
 class ParamPolyGraph:
     def __init__(self, wingshape, trimfile, deprecatedTrimFile=False, splineweight=0.21, legsampleleng=0.05):
         self.legsampleleng = legsampleleng
-        self.splineweight = legsampleleng
+        self.splineweight = splineweight
         self.wingshape = wingshape
         if deprecatedTrimFile:
             snodes, self.paths = loadwingtrimlinesDeprecated(trimfile)
@@ -89,9 +89,6 @@ class ParamPolyGraph:
             p = p0*(2*t3 - 3*t2 + 1) + m0*(t3 - 2*t2 + t) + p1*(-2*t3 + 3*t2) + m1*(t3 - t2)
             sleg.append(p)
         return ((n0, n1), sleg)
-
-
-    
     
     def makeallsplinemidnodes(self):
         self.neighbournodes = dict((nn, [])  for nn in self.nodes)
@@ -225,6 +222,25 @@ class ParamPolyGraph:
                 print("Polygon %d untriangulatable" % i)
         return surfacemeshes
     
+def fullflattriareas(surfacemesh):
+    ptsP = [ P3(*p)  for p in surfacemesh["pts"] ]
+    fptsP = [ P2(*p)  for p in surfacemesh["fpts"] ]
+    tris = surfacemesh["tris"]
+
+    def P2Cross(a, b):
+        return a.u*b.v - b.u*a.v
+    triareas = [ ]
+    ftriareas = [ ]
+    for tri in tris:
+        p0, p1, p2 = ptsP[tri[0]], ptsP[tri[1]], ptsP[tri[2]]
+        parea = 0.5*P3.Cross(p1 - p0, p2 - p0).Len()
+        f0, f1, f2 = fptsP[tri[0]], fptsP[tri[1]], fptsP[tri[2]]
+        farea = 0.5*abs(P2Cross(f1 - f0, f2 - f0))
+        triareas.append(parea)
+        ftriareas.append(farea)
+    surfacemesh["triareas"] = numpy.array(triareas)
+    surfacemesh["ftriareas"] = numpy.array(ftriareas)
+
     
 import subprocess, json, os
 
@@ -266,5 +282,5 @@ json.dump(flatmeshespts, open(flatmeshfile, "w"))
     flatmeshes = json.load(open(flatmeshfile))
     for i, flatmesh in enumerate(flatmeshes):
         surfacemeshes[i]["fpts"] = numpy.array(flatmesh)
-
+        fullflattriareas(surfacemeshes[i])
 
