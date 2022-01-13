@@ -231,15 +231,22 @@ def fullflattriareas(surfacemesh):
         return a.u*b.v - b.u*a.v
     triareas = [ ]
     ftriareas = [ ]
+    cornerangs = [ ]
+    fcornerangs = [ ]
     for tri in tris:
         p0, p1, p2 = ptsP[tri[0]], ptsP[tri[1]], ptsP[tri[2]]
         parea = 0.5*P3.Cross(p1 - p0, p2 - p0).Len()
+        triareas.append(parea)
+        cornerangs.append(P3.Cross(P3.ZNorm(p1 - p0), P3.ZNorm(p2 - p0)).Len())
+
         f0, f1, f2 = fptsP[tri[0]], fptsP[tri[1]], fptsP[tri[2]]
         farea = 0.5*abs(P2Cross(f1 - f0, f2 - f0))
-        triareas.append(parea)
         ftriareas.append(farea)
+        fcornerangs.append(abs(P2Cross(P2.ZNorm(f1 - f0), P2.ZNorm(f2 - f0))))
     surfacemesh["triareas"] = numpy.array(triareas)
     surfacemesh["ftriareas"] = numpy.array(ftriareas)
+    surfacemesh["cornerangs"] = numpy.array(cornerangs)
+    surfacemesh["fcornerangs"] = numpy.array(fcornerangs)
 
     
 import subprocess, json, os
