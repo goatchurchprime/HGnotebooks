@@ -1,6 +1,12 @@
 import re, json, numpy, math
 from basicgeo import P2, P3
 
+try:
+    import pygmsh
+except ImportError:
+    print("No pygmsh")
+
+
 def loadwingtrimlinesDeprecated(fname):
     lnodes, paths = json.load(open(fname))
     nodes = { }
@@ -192,3 +198,65 @@ class ParamPolyGraph:
             polyloop.append(self.nodes[n0])
             polyloop.extend(self.getsplinemidnodes(n0, n1))
         return polyloop
+
+    
+    def surfacemesheslist(self, polysnodes, mesh_size):
+        surfacemeshes = [ ]
+        for polynodes in polysnodes:
+            polyloop = self.splinedpolypoints(polynodes)
+            with pygmsh.geo.Geometry() as g:
+                g.add_polygon(polyloop, mesh_size=mesh_size)
+                mesh = g.generate_mesh()
+            pts = numpy.array([ self.wingshape.seval(p)  for p in mesh.points ])
+            surfacemesh = { "polynodes":polynodes, 
+                            "polyloop":polyloop,
+                            "uvpts":mesh.points, 
+                            "pts":numpy.array(pts),
+                            "tris":mesh.cells_dict["triangle"]
+                          }
+            surfacemeshes.append(surfacemesh)
+        return surfacemeshes
+    
+    
+import subprocess, json, os
+
+def trimeshesflattener(surfacemeshes, freecadappimage):
+    surfacemeshfile = "surfacemeshfile.json"
+    flatmeshfile = "flattenedmesh.json"
+
+    if os.path.exists(flatmeshfile):
+        os.remove(flatmeshfile)
+
+    jsurfacemeshes = [ { "pts":surfacemesh["pts"].tolist(), "tris":surfacemesh["tris"].tolist() }\
+                          for surfacemesh in surfacemeshes ]
+    json.dump(jsurfacemeshes, open(surfacemeshfile, "w"))
+
+
+    fccode = """import flatmesh
+import sys, numpy, json, os
+
+surfacemeshfile = "%s"
+flatmeshfile = "%s"
+scaleupunits = 1024.0
+surfacemeshes = json.load(open(surfacemeshfile))
+flatmeshespts = [ ]
+for surfacemesh in surfacemeshes:
+    pts = scaleupunits*numpy.array(surfacemesh["pts"])
+    tris = numpy.array(surfacemesh["tris"])
+    flattener = flatmesh.FaceUnwrapper(pts, tris)
+    flattener.findFlatNodes(10, 0.95)
+    fnodes = (1.0/scaleupunits)*numpy.array(flattener.ze_nodes)
+    print("mesh (pts=%%d, tris=%%d) flattened" %% (len(pts), len(tris)))
+    flatmeshespts.append(fnodes.tolist())
+
+json.dump(flatmeshespts, open(flatmeshfile, "w"))
+""" % (surfacemeshfile, flatmeshfile)
+
+    a = subprocess.run([freecadappimage, "-c"], input=fccode.encode(), capture_output=True)
+    print(a.stderr.decode())
+    print(a.stdout.decode())
+    flatmeshes = json.load(open(flatmeshfile))
+    for i, flatmesh in enumerate(flatmeshes):
+        surfacemeshes[i]["fpts"] = numpy.array(flatmesh)
+
+

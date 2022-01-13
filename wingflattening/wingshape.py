@@ -142,3 +142,10 @@ class WingShape:
     def uvonboundary(self, p):
         return p.u == self.urange[0] or p.u == self.urange[1] or p.v == self.vrange[0] or p.v == self.vrange[1]
 
+    def linesegmentnetflipyz(self, flipyz):
+        seglines = [ [flipyz(self.seval(P2(u,v)))  for v in numpy.linspace(self.vrange[0], self.vrange[1], 51)]  for u in self.leadingedgelengths ]
+        spanlines = [ [flipyz(self.seval(P2(u,v)))  for u in numpy.linspace(self.urange[0], self.urange[1], 51)]  for v in numpy.linspace(self.vrange[0], self.vrange[1], 21) ]
+        return seglines+spanlines
+    
+    
+
