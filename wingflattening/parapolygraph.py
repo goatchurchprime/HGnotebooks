@@ -270,7 +270,27 @@ class ParamPolyGraph:
                 self.flatpathratios[(n1, n2)] = lenga/lengb
             lengreal = nodepairreallengths.get((n1, n2)) or nodepairreallengths.get((n2, n1)) or -1
             self.flatpathtable.append((n1, n2, lenga, lengb, lengreal))
-    
+            
+    def snap_nodes(self, wingshape,tol = 0.1):
+        vs = [0]
+        for ni,pti in self.nodes.items():
+            for l in wingshape.leadingedgelengths:
+                nptu,nptv = pti.u, pti.v
+                if 0 < abs(pti.u-l) < tol:
+                    nptu = l
+                    break
+                else:
+                    nptu = pti.u
+            for v in vs:
+                if 0 < abs(pti.v-v) < tol:
+                    nptv = v
+                    break
+            if nptv == pti.v:
+                vs.append(pti.v)
+            if nptu != pti.u or nptv != pti.v:
+                npt = P2(nptu,nptv)
+                print("Snapping point",ni, 'from',pti,'to',npt)
+                self.nodes[ni] = npt
     
     
 def fullflattriareas(surfacemesh):
