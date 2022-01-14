@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from matplotlib import colors
 from matplotlib.collections import LineCollection
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib.widgets import Button

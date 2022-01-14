@@ -20,6 +20,17 @@ def loadwingtrimlinesDeprecated(fname):
     paths.extend([cr0, "c4", "c4", cr1])  
     return nodes, paths
 
+def deriveclosedmeshcontour(npts, mlines):
+    lineconnnodes = dict((i, [])  for i in range(npts))
+    for i0, i1 in mlines:
+        lineconnnodes[i0].append(i1)
+        lineconnnodes[i1].append(i0)
+    lineseq = [ mlines[0][0], mlines[0][1] ]
+    while lineseq[-1] != lineseq[0]:
+        lls = lineconnnodes[lineseq[-1]]
+        lineseq.append(lls[1-lls.index(lineseq[-2])])
+    return lineseq
+
 
 
 class ParamPolyGraph:
@@ -34,6 +45,7 @@ class ParamPolyGraph:
             jdata = json.load(open(trimfile))
             self.nodes = dict((nn, P2(*p))  for nn, p in jdata["nodes"].items())
             self.paths = jdata["paths"]
+        self.flatpathlengths = { }
         self.Inodemax = max(int(re.sub("[^\d]", "", nn) or "0")  for nn in self.nodes)
     def saveas(self, trimfile):
         json.dump({"nodes":self.nodes, "paths":self.paths}, open(trimfile, "w"))
@@ -44,6 +56,9 @@ class ParamPolyGraph:
         return zip(*self.nodes.values())
     def legsdata(self):
         return [[self.nodes[self.paths[i]], self.nodes[self.paths[i+1]]]  for i in range(0, len(self.paths), 2)]
+    def legsstretchratio(self):
+        return [self.flatpathratios.get((self.paths[i], self.paths[i+1]), 1.0)  for i in range(0, len(self.paths), 2)]
+    
     def commitlineedit(self, n1, n2):
         for i in range(0, len(self.paths), 2):
             if (n1 == self.paths[i] and n2 == self.paths[i+1]) or (n1 == self.paths[i+1] and n2 == self.paths[i]):
@@ -209,18 +224,54 @@ class ParamPolyGraph:
             with pygmsh.geo.Geometry() as g:
                 g.add_polygon(polyloop, mesh_size=mesh_size)
                 mesh = g.generate_mesh()
-            pts = numpy.array([ self.wingshape.seval(p)  for p in mesh.points ])
+            uvpts = [ P2(p[0], p[1])  for p in mesh.points ]
+            pts = numpy.array([ self.wingshape.seval(p)  for p in uvpts ])
             if "triangle" in mesh.cells_dict:
                 surfacemesh = { "polynodes":polynodes, 
                                 "polyloop":polyloop,
-                                "uvpts":mesh.points, 
+                                "uvpts":uvpts, 
                                 "pts":numpy.array(pts),
-                                "tris":mesh.cells_dict["triangle"]
+                                "tris":mesh.cells_dict["triangle"],
+                                "linecontour":deriveclosedmeshcontour(len(pts), mesh.cells_dict["line"])
                               }
                 surfacemeshes.append(surfacemesh)
             else:
                 print("Polygon %d untriangulatable" % i)
         return surfacemeshes
+    
+    def deriveflatpathstretchratios(self, surfacemeshes):
+        nodepairreallengths = { }
+        nodepairflatlengths = { }
+        for surfacemesh in surfacemeshes:
+            polynodes = surfacemesh["polynodes"]
+            uvpts = surfacemesh["uvpts"]
+            pts = surfacemesh["pts"]
+            fpts = surfacemesh["fpts"]
+            linecontour = surfacemesh["linecontour"]
+            for i in range(len(polynodes)):
+                n1, n2 = polynodes[i], polynodes[(i+1)%len(polynodes)]
+                p1, p2 = self.nodes[n1], self.nodes[n2]
+                i1, i2 = uvpts.index(p1), uvpts.index(p2)
+                j1, j2 = linecontour.index(i1), linecontour.index(i2)
+                if j2 == 0:  j2 = len(linecontour)-1
+                assert (j1 < j2)
+                lenreal = sum((P3(*pts[linecontour[j+1]]) - P3(*pts[linecontour[j]])).Len()  for j in range(j1, j2))
+                lenflat = sum((P2(*fpts[linecontour[j+1]]) - P2(*fpts[linecontour[j]])).Len()  for j in range(j1, j2))
+                nodepairflatlengths[(n1, n2)] = lenflat
+                nodepairreallengths[(n1, n2)] = lenreal
+
+        self.flatpathratios = { }
+        self.flatpathtable = [ ]
+        for i in range(0, len(self.paths), 2):
+            n1, n2 = self.paths[i], self.paths[i+1]
+            lenga = nodepairflatlengths.get((n1, n2), -1)
+            lengb = nodepairflatlengths.get((n2, n1), -1)
+            if lenga != -1 and lengb != -1:
+                self.flatpathratios[(n1, n2)] = lenga/lengb
+            lengreal = nodepairreallengths.get((n1, n2)) or nodepairreallengths.get((n2, n1)) or -1
+            self.flatpathtable.append((n1, n2, lenga, lengb, lengreal))
+    
+    
     
 def fullflattriareas(surfacemesh):
     ptsP = [ P3(*p)  for p in surfacemesh["pts"] ]
