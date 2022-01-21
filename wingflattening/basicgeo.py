@@ -20,7 +20,7 @@ class P2(namedtuple('P2', ['u', 'v'])):
     def __neg__(self):
         return P2(-self.u, -self.v)
     def __rmul__(self, a):
-        raise TypeError("Please use left multiplication")
+        raise TypeError("Please use right multiplication")
     def Lensq(self):
         return self.u*self.u + self.v*self.v
     def Len(self):
@@ -114,7 +114,7 @@ class P3(namedtuple('P3', ['x', 'y', 'z'])):
             
     @staticmethod
     def ConvertGZ(p, z):  
-        return P3(p.u, p.v, z)
+        return P3(p[0], p[1], z)
     @staticmethod
     def ConvertCZ(p, z):  
         return P3(p.x, p.y, z)
