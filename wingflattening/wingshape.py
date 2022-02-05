@@ -121,6 +121,9 @@ class WingShape:
         return p0*(1-m) + p1*m
         
     def seval(self, p):
+        if p[0] < 0.0:
+            s = self.sevalI(self.sevalconv((-p[0], p[1])))
+            return P3(s.x, s.y, -s.z)                       
         return self.sevalI(self.sevalconv(p))
 
     def sevalconvO(self, p):
