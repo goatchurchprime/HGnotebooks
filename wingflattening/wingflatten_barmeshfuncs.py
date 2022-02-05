@@ -52,3 +52,113 @@ def MakeRectBarmeshForWingParametrization(wingshape, xpart, ypart):
     assert len(bm.bars) == len(xbars)+len(ybars)
     return bm
 
+
+
+
+from barmesh.implicitareaballoffset import DistPZ, DistLamPZ
+from barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
+from barmesh.basicgeo import I1, Partition1, P3, P2, Along
+from barmesh import barmesh
+
+class ImplicitAreaBallOffsetOfClosedContour:
+    def __init__(self, polyloopW, polyloop):
+        assert len(polyloopW) == len(polyloop)
+        tbm = TriangleBarMesh()
+        tbmF = TriangleBarMesh()
+        polyloopN = [ tbm.NewNode(p)  for p in polyloopW ]
+        polyloopFN = [ tbmF.NewNode(P3.ConvertGZ(p, 0.0))  for p in polyloop ]
+        for i in range(len(polyloop)-1):
+            tbm.bars.append(TriangleBar(polyloopN[i], polyloopN[i+1]))
+            tbmF.bars.append(TriangleBar(polyloopFN[i], polyloopFN[i+1]))
+        tbm.bars.append(TriangleBar(polyloopN[0], polyloopN[-1]))
+        tbmF.bars.append(TriangleBar(polyloopFN[0], polyloopFN[-1]))
+        
+        self.tbarmesh = tbm
+        self.tbarmeshF = tbmF
+        self.tboxing = MakeTriangleBoxing(self.tbarmesh)
+        self.tboxingF = MakeTriangleBoxing(self.tbarmeshF)
+        self.hitreg = [0]*len(self.tbarmesh.bars)
+        self.nhitreg = 0
+
+    def Isb2dcontournormals(self):
+        return False
+
+    def IsToRightRay(self, sp, p0, p1):
+        if (p0.y < sp.v) != (p1.y < sp.v):
+            mu = (p1.y - sp.v)/(p1.y - sp.v)
+            ucut = Along(mu, p0.x, p1.x)
+            if ucut > sp.u:
+                return 1
+        return 0
+    
+    def InsidePF(self, sp):
+        uplusraycuts = 0
+        self.nhitreg += 1
+        for ix, iy in self.tboxingF.CloseBoxeGenerator(sp.u, self.tboxingF.xpart.hi, sp.v, sp.v, 0.01):
+            tbox = self.tboxingF.boxes[ix][iy]
+            for i in tbox.edgeis:
+                if self.hitreg[i] != self.nhitreg:
+                    p0, p1 = self.tboxingF.GetBarPoints(i)
+                    uplusraycuts += self.IsToRightRay(sp, p0, p1)
+                    self.hitreg[i] = self.nhitreg
+        #assert (uplusraycuts == 0 or uplusraycuts == 1), uplusraycuts
+        return (uplusraycuts%2) == 1
+        assert 0
+        
+    def DistPN(self, pz, n):
+        self.DistP(pz, n.p)
+        if self.InsidePF(n.sp):
+            pz.r = -pz.r
+        
+    def DistP(self, pz, p):
+        dpz = DistPZ(p, pz.r)
+        for ix, iy in self.tboxing.CloseBoxeGenerator(p.x, p.x, p.y, p.y, pz.r):
+            tbox = self.tboxing.boxes[ix][iy]
+            for i in tbox.pointis:
+                dpz.DistPpointPZ(self.tboxing.GetNodePoint(i))
+                
+        self.nhitreg += 1
+        for ix, iy in self.tboxing.CloseBoxeGenerator(p.x, p.x, p.y, p.y, pz.r):
+            tbox = self.tboxing.boxes[ix][iy]
+            for i in tbox.edgeis:
+                if self.hitreg[i] != self.nhitreg:
+                    dpz.DistPedgePZ(*self.tboxing.GetBarPoints(i))
+                    self.hitreg[i] = self.nhitreg
+                    
+        pz.r = dpz.r
+        pz.v = dpz.v
+        
+
+    def CutposN(self, nodefrom, nodeto, cp, r):  # point, vector, cp=known close point to narrow down the cutoff search
+        p = nodefrom.p
+        vp = nodeto.p - nodefrom.p
+        dlpz = DistLamPZ(p, vp, r)  
+        if cp is not None:
+            dlpz.DistLamPpointPZ(cp)
+            assert dlpz.lam != 2.0
+        
+        # solve |p0 + vp * lam - p| == r where Dist(p0) >= r >= Dist(p0 + vp)
+        rexp = r + 0.01
+        for ix, iy in self.tboxing.CloseBoxeGenerator(min(p.x, p.x+vp.x), max(p.x, p.x+vp.x), min(p.y, p.y+vp.y), max(p.y, p.y+vp.y), rexp):
+            tbox = self.tboxing.boxes[ix][iy]
+            for i in self.tboxing.SlicePointisZ(tbox.pointis, min(p.z,p.z+vp.z)-rexp, max(p.z,p.z+vp.z)+rexp):
+            #for i in tbox.pointis:
+                dlpz.DistLamPpointPZ(self.tboxing.GetNodePoint(i))
+                
+        self.nhitreg += 1
+        for ix, iy in self.tboxing.CloseBoxeGenerator(min(p.x, p.x+vp.x*dlpz.lam), max(p.x, p.x+vp.x*dlpz.lam), min(p.y, p.y+vp.y*dlpz.lam), max(p.y, p.y+vp.y*dlpz.lam), r + 0.01):
+            tbox = self.tboxing.boxes[ix][iy]
+            for i in tbox.edgeis:
+                if self.hitreg[i] != self.nhitreg:
+                    dlpz.DistLamPedgePZ(*self.tboxing.GetBarPoints(i))
+                    self.hitreg[i] = self.nhitreg
+        
+        if __debug__:
+            if not (dlpz.lam == 0.0 or dlpz.lam == 2.0):
+                pz = barmesh.PointZone(0, abs(r) + 1.1, None)
+                self.DistP(pz, dlpz.p + dlpz.vp*dlpz.lam)
+                assert abs(pz.r - r) < 0.002, ("cutposbad", pz.r, dlpz.lam, dlpz.p, dlpz.vp)
+            
+        return dlpz.lam
+
+
