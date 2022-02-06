@@ -162,3 +162,59 @@ class ImplicitAreaBallOffsetOfClosedContour:
         return dlpz.lam
 
 
+    
+def findandnumberallnodesandbarcycles(bm):
+    tnodes, tbarcycles = [ ], set()
+    cizone = barmesh.PZ_BEYOND_R
+    for node in bm.nodes:
+        if not (node.pointzone.izone == cizone):
+            node.i = len(tnodes)
+            tnodes.append(node)
+        else:
+            node.i = -1
+    for bar in bm.bars:
+        if not bar.bbardeleted:
+            if not (bar.nodeback.pointzone.izone == cizone):
+                tbarcycles.add((bar, bar.nodeback))
+            if not (bar.nodefore.pointzone.izone == cizone):
+                tbarcycles.add((bar, bar.nodefore))
+            if (bar.nodeback.pointzone.izone == cizone) != (bar.nodefore.pointzone.izone == cizone):
+                bar.nodemid.i = len(tnodes)
+                tnodes.append(bar.nodemid)
+    return tnodes, tbarcycles
+
+def findallnodesandpolys(bm):
+    cizone = barmesh.PZ_BEYOND_R
+    tnodes, tbarcycles = findandnumberallnodesandbarcycles(bm)
+    cpolys = [ ]
+    while len(tbarcycles):
+        cbar, cnode = tbarcycles.pop()
+        assert not (cnode.pointzone.izone == cizone)
+        ccpoly = [ ]
+        ccbar, ccnode = cbar, cnode
+        while True:
+            izoneP = ccnode.pointzone.izone
+            ccnode = ccbar.GetNodeFore(ccbar.nodeback == ccnode)
+            if (ccnode.pointzone.izone == cizone) != (izoneP == cizone):
+                ccpoly.append(ccbar.nodemid.i)
+            if not (ccnode.pointzone.izone == cizone):
+                assert ccnode.i != -1
+                ccpoly.append(ccnode.i)
+            if ccnode == cnode:
+                break
+            ccbar = ccbar.GetForeRightBL(ccbar.nodefore == ccnode)
+            if not (ccnode.pointzone.izone == cizone):
+                tbarcycles.remove((ccbar, ccnode))
+        cpolys.append(ccpoly)
+    return tnodes, cpolys
+
+def cpolytriangulate(ptsF, cpoly):
+    if (n:=len(cpoly)) == 3:
+        return [ cpoly ]
+    assert n == len(cpoly)
+    jp = max((min(P2.Dot((ptsF[cpoly[(j+i)%n]]-ptsF[cpoly[j]]), P2.APerp(ptsF[cpoly[(j+i+1)%n]]-ptsF[cpoly[j]]))  \
+                 for i in range(1, n-1)), j)  for j in range(n))
+    j = jp[1]
+    return [ (cpoly[j], cpoly[(j+i)%n], cpoly[(j+i+1)%n])  for i in range(1, n-1) ]
+
+
