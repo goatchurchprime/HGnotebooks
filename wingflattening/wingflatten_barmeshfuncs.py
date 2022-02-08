@@ -308,7 +308,7 @@ def sliceupatnones(seq):
     return res
 
 
-def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing):
+def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing, bFlattenedPatches=True):
     if not (xpart.lo < sp[0] < xpart.hi):
         return None
     ix = xpart.GetPart(sp[0])
