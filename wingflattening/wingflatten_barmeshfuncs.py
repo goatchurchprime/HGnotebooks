@@ -1,6 +1,7 @@
 from barmesh.basicgeo import P2, P3, Partition1, Along
 import barmesh.barmesh as barmesh
 from barmesh.barmesh import Bar
+import numpy
 
 class WNode:
     def __init__(self, p, sp, i):
@@ -216,5 +217,113 @@ def cpolytriangulate(ptsF, cpoly):
                  for i in range(1, n-1)), j)  for j in range(n))
     j = jp[1]
     return [ (cpoly[j], cpoly[(j+i)%n], cpoly[(j+i+1)%n])  for i in range(1, n-1) ]
+
+
+
+def orientation(ptfs, polyi):
+    jbl, ptbl = min(enumerate(ptfs[i]  for i in polyi), key=lambda X:(X[1][1], X[1][0]))
+    ptblFore = ptfs[polyi[(jbl+1)%len(polyi)]]
+    ptblBack = ptfs[polyi[(jbl+len(polyi)-1)%len(polyi)]]
+    angFore = P2(ptblFore[0]-ptbl[0], ptblFore[1]-ptbl[1]).Arg()
+    angBack = P2(ptblBack[0]-ptbl[0], ptblBack[1]-ptbl[1]).Arg()
+    return (angBack < angFore)
+
+def applyconsistenrotationtoflats(surfacemesh):
+    ptsF = surfacemesh["fpts"]*(1,-1)   # reflect in Y using numpy.array multiplication
+    offsetloopuv = surfacemesh["offsetloopuv"]
+    offsetloopptsF = [ P2(ptsF[i][0], ptsF[i][1])  for i in surfacemesh["offsetloopI"] ]
+    offsetloopuvCentre = sum(offsetloopuv, start=P2(0,0))*(1.0/len(offsetloopuv))
+    offsetloopptsFCentre = sum(offsetloopptsF, start=P2(0,0))*(1.0/len(offsetloopptsF))
+    voff = offsetloopuvCentre - offsetloopptsFCentre
+    
+    # this proves all the polygons are reflected
+    orientOrg = orientation(surfacemesh["uvpts"], surfacemesh["offsetloopI"])
+    orientReflFlatttened = orientation(ptsF, surfacemesh["offsetloopI"])
+    assert orientOrg == orientReflFlatttened
+    
+    # try and rotate so we align with the first edge
+    i0 = surfacemesh["offsetloopI"][-10]
+    i1 = surfacemesh["offsetloopI"][-5]
+    #v = P2(*surfacemesh["uvpts"][i1]) - offsetloopuvCentre
+    #vF = P2(*ptsF[i1]) - offsetloopptsFCentre
+    v = P2(*surfacemesh["uvpts"][i1]) - P2(*surfacemesh["uvpts"][i0])
+    vF = P2(*ptsF[i1]) - P2(*ptsF[i0])
+    
+    xv = P2.ZNorm(P2(P2.Dot(vF, v), P2.Dot(P2.APerp(vF), v)))
+    yv = P2.APerp(xv)
+    
+    explodev = (offsetloopuvCentre - P2(3, 0))*0.8
+    if surfacemesh["patchname"] == "s14":
+        offsetloopuvCentre -= P2(1.0, -0.3)
+    def transF(p):
+        p0 = p - offsetloopptsFCentre
+        return xv*p0[0] + yv*p0[1] + offsetloopuvCentre + explodev
+    surfacemesh["fptsT"] = fptsT = numpy.array([ transF(p)  for p in ptsF ])
+    vFT = P2(*surfacemesh["fptsT"][i1]) - P2(*surfacemesh["fptsT"][i0])
+    #print(v.Arg(), vF.Arg(), vFT.Arg())
+    surfacemesh["textpos"] = offsetloopuvCentre + explodev
+
+def cpolyuvvectorstransF(uvpts, fptsT, cpoly):
+    cpt = sum((P2(*uvpts[ci]) for ci in cpoly), P2(0,0))*(1.0/len(cpoly))
+    cptT = sum((P2(*fptsT[ci]) for ci in cpoly), P2(0,0))*(1.0/len(cpoly))
+    n = len(cpoly)
+    jp = max((abs(P2.Dot((P2(*uvpts[cpoly[j]]) - cpt), P2.APerp(P2(*uvpts[cpoly[(j+1)%n]]) - cpt))), j)  for j in range(n))
+    vj = P2(*uvpts[cpoly[jp[1]]]) - cpt
+    vj1 = P2(*uvpts[cpoly[(jp[1]+1)%n]]) - cpt
+    
+    urvec = P2(vj1.v, -vj.v)
+    urvec = urvec*(1.0/P2.Dot(urvec, P2(vj.u, vj1.u)))
+    vrvec = P2(vj1.u, -vj.u)
+    vrvec = vrvec*(1.0/P2.Dot(vrvec, P2(vj.v, vj1.v)))
+
+    vjT = P2(*fptsT[cpoly[jp[1]]]) - cptT
+    vj1T = P2(*fptsT[cpoly[(jp[1]+1)%n]]) - cptT
+
+    return { "cpt":cpt, "cptT":cptT, "urvec":urvec, "vrvec":vrvec, 
+             "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T }
+
+
+def generatecpolytransformfunction(surfacemesh):
+    bm, xpart, ypart = surfacemesh["barmeshoffset"], surfacemesh["xpart"], surfacemesh["ypart"]
+    uvpts = surfacemesh["uvpts"]
+    fptsT = surfacemesh["fptsT"]
+    cpolycolumns = [ [ ]  for ix in range(xpart.nparts) ]
+    tnodes, cpolys = findallnodesandpolys(bm)
+    for cpoly in cpolys:
+        ccpoly = cpolyuvvectorstransF(uvpts, fptsT, cpoly)
+        cpolycolumns[xpart.GetPart(ccpoly["cpt"].u)].append(ccpoly)
+    surfacemesh["cpolycolumns"] = cpolycolumns
+
+    
+def sliceupatnones(seq):
+    res = [ [ ] ]
+    for s in seq:
+        if s is None:
+            if res[-1]:
+                res.append([])
+        else:
+            res[-1].append(s)
+    if not res[-1]:
+        res.pop()
+    return res
+
+
+def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing):
+    if not (xpart.lo < sp[0] < xpart.hi):
+        return None
+    ix = xpart.GetPart(sp[0])
+    if len(cpolycolumns[ix]) == 0:
+        return None
+    cc = min((cc  for cc in cpolycolumns[ix]), key=lambda X: (X["cpt"] - sp).Len())
+    if abs(cc["cpt"][0] - sp.u) > uspacing or abs(cc["cpt"][1] - sp.v) > vspacing:
+        return None
+    vc = sp - cc["cpt"]
+    vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
+    vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v # should be same as vc
+    vcsT = cc["vjT"]*vcp.u + cc["vj1T"]*vcp.v
+    if bFlattenedPatches:
+        return vcsT + cc["cptT"]
+    return vcs + cc["cpt"]
+    nn = nodesixyShift(ix, iy)
 
 
