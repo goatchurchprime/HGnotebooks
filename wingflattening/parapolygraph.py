@@ -207,20 +207,20 @@ class ParamPolyGraph:
                 polys.append(poly)
         return polys
 
-    def splinedpolypoints(self, polynodes):
+    def splinedpolypoints(self, polynodes, bclosed):
         polyloop = [ ]
         for i in range(len(polynodes)):
             n0 = polynodes[i]
             n1 = polynodes[(i+1) % len(polynodes)]
             polyloop.append(self.nodes[n0])
-            polyloop.extend(self.getsplinemidnodes(n0, n1))
+            if i < len(polynodes) - 1 or bclosed:
+                polyloop.extend(self.getsplinemidnodes(n0, n1))
         return polyloop
-
     
     def surfacemesheslist(self, polysnodes, mesh_size):
         surfacemeshes = [ ]
         for i, polynodes in enumerate(polysnodes):
-            polyloop = self.splinedpolypoints(polynodes)
+            polyloop = self.splinedpolypoints(polynodes, bclosed=True)
             with pygmsh.geo.Geometry() as g:
                 g.add_polygon(polyloop, mesh_size=mesh_size)
                 mesh = g.generate_mesh()

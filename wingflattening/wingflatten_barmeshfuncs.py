@@ -253,7 +253,7 @@ def applyconsistenrotationtoflats(surfacemesh):
     yv = P2.APerp(xv)
     
     explodev = (offsetloopuvCentre - P2(3, 0))*0.8
-    if surfacemesh["patchname"] == "s14":
+    if surfacemesh["patchname"] == "TSM3":
         offsetloopuvCentre -= P2(1.0, -0.3)
     def transF(p):
         p0 = p - offsetloopptsFCentre
@@ -326,4 +326,23 @@ def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing, bFlattenedPat
     return vcs + cc["cpt"]
     nn = nodesixyShift(ix, iy)
 
+    
+def subloopsequence(polynodesloop, polynodesset):
+    polynodesseqs = [ [ ] ]
+    for i in range(len(polynodesloop)):
+        if polynodesloop[i] in polynodesset:
+            polynodesseqs[-1].append(polynodesloop[i])
+        elif polynodesseqs[-1]:
+            polynodesseqs.append([])
+    if polynodesseqs[-1]:
+        if polynodesseqs[0][0] == polynodesloop[0] and polynodesseqs[-1][-1] == polynodesloop[-1]:
+            if len(polynodesseqs) == 1:
+                polynodesseqs[0].append(polynodesseqs[0][0])
+            else:
+                polynodesseqs[0] = polynodesseqs.pop() + polynodesseqs[0]
+    else:
+        polynodesseqs.pop()
+    return polynodesseqs
+        
 
+    
