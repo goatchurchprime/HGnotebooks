@@ -62,8 +62,9 @@ from barmesh.basicgeo import I1, Partition1, P3, P2, Along
 from barmesh import barmesh
 
 class ImplicitAreaBallOffsetOfClosedContour:
-    def __init__(self, polyloopW, polyloop):
+    def __init__(self, polyloopW, polyloop, polylineExtra=None, polylineExtraOffset=1.0):
         assert len(polyloopW) == len(polyloop)
+        # polyloop is in UV space, polyloopW is the 3D space projections
         tbm = TriangleBarMesh()
         tbmF = TriangleBarMesh()
         polyloopN = [ tbm.NewNode(p)  for p in polyloopW ]
@@ -81,6 +82,21 @@ class ImplicitAreaBallOffsetOfClosedContour:
         self.hitreg = [0]*len(self.tbarmesh.bars)
         self.nhitreg = 0
 
+        if polylineExtra != None:
+            tbmE = TriangleBarMesh()
+            polylineE = [ tbmE.NewNode(p)  for p in polylineExtra ]
+            for i in range(len(polylineExtra)-1):
+                tbmE.bars.append(TriangleBar(polylineE[i], polylineE[i+1]))
+            self.tbarmeshExtra = tbmE
+            self.tboxingExtra = MakeTriangleBoxing(self.tbarmeshExtra)
+            self.hitregE = [0]*len(self.tbarmeshExtra.bars)
+            self.nhitregE = 0
+            self.polylineExtraOffset = polylineExtraOffset
+            
+        else:
+            self.tbarmeshExtra = None
+        
+        
     def Isb2dcontournormals(self):
         return False
 
@@ -129,7 +145,30 @@ class ImplicitAreaBallOffsetOfClosedContour:
         pz.r = dpz.r
         pz.v = dpz.v
         
+        if self.tbarmeshExtra != None:
+            self.DistPExtra(pz, p)
 
+        
+    # secondary bit of geometry for generating an offset with
+    def DistPExtra(self, pz, p):
+        rE = pz.r + self.polylineExtraOffset
+        dpzE = DistPZ(p, rE)
+        for ix, iy in self.tboxingExtra.CloseBoxeGenerator(p.x, p.x, p.y, p.y, dpzE.r):
+            tbox = self.tboxingExtra.boxes[ix][iy]
+            for i in tbox.pointis:
+                dpzE.DistPpointPZ(self.tboxingExtra.GetNodePoint(i))
+                
+        self.nhitregE += 1
+        for ix, iy in self.tboxingExtra.CloseBoxeGenerator(p.x, p.x, p.y, p.y, dpzE.r):
+            tbox = self.tboxingExtra.boxes[ix][iy]
+            for i in tbox.edgeis:
+                if self.hitregE[i] != self.nhitreg:
+                    dpzE.DistPedgePZ(*self.tboxingExtra.GetBarPoints(i))
+                    self.hitregE[i] = self.nhitregE
+        if dpzE.r < rE:
+            pz.r = dpzE.r - self.polylineExtraOffset
+            pz.v = dpzE.v
+        
     def CutposN(self, nodefrom, nodeto, cp, r):  # point, vector, cp=known close point to narrow down the cutoff search
         p = nodefrom.p
         vp = nodeto.p - nodefrom.p
@@ -325,6 +364,25 @@ def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing, bFlattenedPat
         return vcsT + cc["cptT"]
     return vcs + cc["cpt"]
     nn = nodesixyShift(ix, iy)
+
+def projectdetaillines(sp, xpart, cpolycolumns, uspacing, vspacing, battendetaillines):
+    if not (xpart.lo < sp[0] < xpart.hi):
+        return [ ]
+    ix = xpart.GetPart(sp[0])
+    if len(cpolycolumns[ix]) == 0:
+        return [ ]
+    cc = min((cc  for cc in cpolycolumns[ix]), key=lambda X: (X["cpt"] - sp).Len())
+    if abs(cc["cpt"][0] - sp.u) > uspacing or abs(cc["cpt"][1] - sp.v) > vspacing:
+        return [ ]
+    
+    battendetails = [ ]
+    for lsp in battendetaillines:
+        vc = lsp + sp - cc["cpt"]
+        vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
+        vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v # should be same as vc
+        vcsT = cc["vjT"]*vcp.u + cc["vj1T"]*vcp.v
+        battendetails.append(vcsT + cc["cptT"])
+    return battendetails
 
     
 def subloopsequence(polynodesloop, polynodesset):
