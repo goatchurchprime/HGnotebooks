@@ -23,17 +23,17 @@ $INSBASE
   9
 $EXTMIN
  10
-10000000000
+-300
  20
-10000000000
+-24
  30
 0
   9
 $EXTMAX
  10
--10000000000
+300
  20
--10000000000
+1000
  30
 0
   9
@@ -91,7 +91,7 @@ STANDARD
   9
 $CLAYER
   8
-0
+PLOT
   9
 $CELTYPE
   6
@@ -1111,9 +1111,9 @@ AcDbViewportTableRecord
  21
 1
  12
-186.5
+1441.648446907743
  22
-97.25
+1154.430568667768
  13
 0
  23
@@ -1139,9 +1139,9 @@ AcDbViewportTableRecord
  37
 0
  40
-207
+3009.302156527216
  41
-1.86231884057971
+1.899014778325123
  42
 50
  43
@@ -2231,7 +2231,143 @@ AcDbLayerTableRecord
   2
 0
  70
+    1
+ 62
+    7
+  6
+CONTINUOUS
+370
     0
+390
+F
+  0
+LAYER
+  5
+4A
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+CUT
+ 70
+    0
+ 62
+    1
+  6
+CONTINUOUS
+370
+    0
+390
+F
+  0
+LAYER
+  5
+4B
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+MYLAR-CUT
+ 70
+    0
+ 62
+   30
+420
+16087296
+  6
+CONTINUOUS
+370
+    0
+390
+F
+  0
+LAYER
+  5
+4C
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+PATCH-CUT
+ 70
+    0
+ 62
+    4
+  6
+CONTINUOUS
+370
+    0
+390
+F
+  0
+LAYER
+  5
+4D
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+PATCH-PLOT
+ 70
+    0
+ 62
+  136
+420
+32896
+  6
+CONTINUOUS
+370
+    0
+390
+F
+  0
+LAYER
+  5
+4E
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+PLOT
+ 70
+    0
+ 62
+    3
+  6
+CONTINUOUS
+370
+    0
+390
+F
+  0
+LAYER
+  5
+4F
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+REF
+ 70
+    1
  62
     7
   6
@@ -2257,7 +2393,7 @@ AcDbSymbolTable
   0
 STYLE
   5
-4A
+50
 330
 2
 100
@@ -2341,7 +2477,7 @@ ACAD
   0
 APPID
   5
-4B
+51
 330
 9
 100
@@ -2373,7 +2509,7 @@ AcDbDimStyleTable
   0
 DIMSTYLE
 105
-4C
+52
 330
 A
 100
@@ -2645,6 +2781,534 @@ SECTION
   2
 ENTITIES
   0
+LINE
+  5
+53
+100
+AcDbEntity
+  8
+REF
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-300
+ 20
+0
+ 11
+300
+ 21
+0
+  0
+LINE
+  5
+54
+100
+AcDbEntity
+  8
+REF
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+0
+ 11
+0
+ 21
+300
+  0
+LINE
+  5
+55
+100
+AcDbEntity
+  8
+CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-300
+ 20
+-24
+ 11
+300
+ 21
+-24
+  0
+LINE
+  5
+56
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-300
+ 20
+0
+ 11
+300
+ 21
+0
+  0
+LINE
+  5
+57
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-300
+ 20
+-12
+ 11
+300
+ 21
+-12
+  0
+LINE
+  5
+58
+100
+AcDbEntity
+  8
+PATCH-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-200
+ 20
+-24
+ 11
+200
+ 21
+-24
+  0
+LINE
+  5
+59
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-200
+ 20
+-24
+ 11
+0
+ 21
+240
+  0
+LINE
+  5
+5A
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+240
+ 11
+200
+ 21
+-24
+  0
+LINE
+  5
+5B
+100
+AcDbEntity
+  8
+PATCH-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-200
+ 20
+-24
+ 11
+0
+ 21
+240
+  0
+LINE
+  5
+5C
+100
+AcDbEntity
+  8
+PATCH-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+240
+ 11
+200
+ 21
+-24
+  0
+LINE
+  5
+5D
+100
+AcDbEntity
+  8
+REF
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+140
+ 11
+10
+ 21
+150
+  0
+LINE
+  5
+5E
+100
+AcDbEntity
+  8
+REF
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+210
+ 11
+10
+ 21
+200
+  0
+LINE
+  5
+5F
+100
+AcDbEntity
+  8
+PATCH-PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+140
+ 11
+0
+ 21
+240
+  0
+LINE
+  5
+60
+100
+AcDbEntity
+  8
+PATCH-PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+140
+ 11
+10
+ 21
+150
+  0
+LINE
+  5
+61
+100
+AcDbEntity
+  8
+PATCH-PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+210
+ 11
+10
+ 21
+200
+  0
+LINE
+  5
+62
+100
+AcDbEntity
+  8
+PATCH-PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+90
+ 11
+35
+ 21
+-24
+  0
+LINE
+  5
+63
+100
+AcDbEntity
+  8
+PATCH-PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+90
+ 11
+-35
+ 21
+-24
+  0
+LINE
+  5
+64
+100
+AcDbEntity
+  8
+MYLAR-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+-35
+ 20
+-24
+ 11
+35
+ 21
+-24
+  0
+LINE
+  5
+65
+100
+AcDbEntity
+  8
+MYLAR-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+90
+ 11
+35
+ 21
+-24
+  0
+LINE
+  5
+66
+100
+AcDbEntity
+  8
+MYLAR-CUT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+90
+ 11
+-35
+ 21
+-24
+  0
+LINE
+  5
+67
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+240
+ 11
+0
+ 21
+1000
+  0
+LINE
+  5
+68
+100
+AcDbEntity
+  8
+PLOT
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+1000
+ 11
+10
+ 21
+1000
+  0
 ENDSEC
   0
 SECTION
@@ -2677,7 +3341,7 @@ AcDbDictionary
   0
 PLOTSETTINGS
   5
-4D
+69
 100
 AcDbPlotSettings
   6

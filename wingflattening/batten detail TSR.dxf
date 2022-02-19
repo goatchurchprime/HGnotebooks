@@ -801,6 +801,10 @@ $PEXTMAX
  30
 0
   9
+$GRIDMODE
+ 70
+    1
+  9
 $SNAPSTYLE
  70
     0
@@ -1111,9 +1115,9 @@ AcDbViewportTableRecord
  21
 1
  12
-1441.648446907743
+197.2973507981208
  22
-1154.430568667768
+135.1472194917291
  13
 0
  23
@@ -1139,7 +1143,7 @@ AcDbViewportTableRecord
  37
 0
  40
-3009.302156527216
+476.0934586866987
  41
 1.899014778325123
  42
@@ -2251,28 +2255,6 @@ AcDbSymbolTableRecord
 100
 AcDbLayerTableRecord
   2
-CUT
- 70
-    0
- 62
-    1
-  6
-CONTINUOUS
-370
-    0
-390
-F
-  0
-LAYER
-  5
-4B
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-  2
 MYLAR-CUT
  70
     0
@@ -2289,7 +2271,7 @@ F
   0
 LAYER
   5
-4C
+4B
 330
 2
 100
@@ -2311,7 +2293,7 @@ F
   0
 LAYER
   5
-4D
+4C
 330
 2
 100
@@ -2335,7 +2317,7 @@ F
   0
 LAYER
   5
-4E
+4D
 330
 2
 100
@@ -2357,7 +2339,7 @@ F
   0
 LAYER
   5
-4F
+4E
 330
 2
 100
@@ -2367,7 +2349,7 @@ AcDbLayerTableRecord
   2
 REF
  70
-    1
+    0
  62
     7
   6
@@ -2393,7 +2375,7 @@ AcDbSymbolTable
   0
 STYLE
   5
-50
+4F
 330
 2
 100
@@ -2477,7 +2459,7 @@ ACAD
   0
 APPID
   5
-51
+50
 330
 9
 100
@@ -2509,7 +2491,7 @@ AcDbDimStyleTable
   0
 DIMSTYLE
 105
-52
+51
 330
 A
 100
@@ -2783,7 +2765,7 @@ ENTITIES
   0
 LINE
   5
-53
+52
 100
 AcDbEntity
   8
@@ -2804,6 +2786,30 @@ AcDbLine
 300
  21
 0
+  0
+LINE
+  5
+53
+100
+AcDbEntity
+  8
+REF
+  6
+ByLayer
+ 62
+  256
+370
+   -1
+100
+AcDbLine
+ 10
+0
+ 20
+0
+ 11
+0
+ 21
+300
   0
 LINE
   5
@@ -2823,11 +2829,11 @@ AcDbLine
  10
 0
  20
-0
+140
  11
-0
+10
  21
-300
+150
   0
 LINE
   5
@@ -2835,7 +2841,7 @@ LINE
 100
 AcDbEntity
   8
-CUT
+REF
   6
 ByLayer
  62
@@ -2845,13 +2851,13 @@ ByLayer
 100
 AcDbLine
  10
--300
+0
  20
--24
+210
  11
-300
+10
  21
--24
+200
   0
 LINE
   5
@@ -2859,7 +2865,7 @@ LINE
 100
 AcDbEntity
   8
-PLOT
+PATCH-PLOT
   6
 ByLayer
  62
@@ -2869,13 +2875,13 @@ ByLayer
 100
 AcDbLine
  10
--300
+0
  20
-0
+140
  11
-300
- 21
 0
+ 21
+240
   0
 LINE
   5
@@ -2883,7 +2889,7 @@ LINE
 100
 AcDbEntity
   8
-PLOT
+PATCH-PLOT
   6
 ByLayer
  62
@@ -2893,13 +2899,13 @@ ByLayer
 100
 AcDbLine
  10
--300
+0
  20
--12
+140
  11
-300
+10
  21
--12
+150
   0
 LINE
   5
@@ -2907,7 +2913,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-CUT
+PATCH-PLOT
   6
 ByLayer
  62
@@ -2917,13 +2923,13 @@ ByLayer
 100
 AcDbLine
  10
--200
+0
  20
--24
+210
  11
-200
+10
  21
--24
+200
   0
 LINE
   5
@@ -2931,7 +2937,7 @@ LINE
 100
 AcDbEntity
   8
-PLOT
+MYLAR-CUT
   6
 ByLayer
  62
@@ -2941,13 +2947,13 @@ ByLayer
 100
 AcDbLine
  10
--200
+-35
  20
 -24
  11
-0
+35
  21
-240
+-24
   0
 LINE
   5
@@ -2969,9 +2975,9 @@ AcDbLine
  20
 240
  11
-200
+0
  21
--24
+1000
   0
 LINE
   5
@@ -2979,7 +2985,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-CUT
+PLOT
   6
 ByLayer
  62
@@ -2989,13 +2995,13 @@ ByLayer
 100
 AcDbLine
  10
--200
- 20
--24
- 11
 0
+ 20
+1000
+ 11
+10
  21
-240
+1000
   0
 LINE
   5
@@ -3003,7 +3009,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-CUT
+REF
   6
 ByLayer
  62
@@ -3013,11 +3019,11 @@ ByLayer
 100
 AcDbLine
  10
-0
+-300
  20
-240
+-24
  11
-200
+300
  21
 -24
   0
@@ -3037,13 +3043,13 @@ ByLayer
 100
 AcDbLine
  10
-0
+-300
  20
-140
+-12
  11
-10
+300
  21
-150
+-12
   0
 LINE
   5
@@ -3051,7 +3057,7 @@ LINE
 100
 AcDbEntity
   8
-REF
+PLOT
   6
 ByLayer
  62
@@ -3063,11 +3069,11 @@ AcDbLine
  10
 0
  20
-210
+240
  11
-10
+-100
  21
-200
+-24
   0
 LINE
   5
@@ -3075,7 +3081,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-PLOT
+PLOT
   6
 ByLayer
  62
@@ -3087,11 +3093,11 @@ AcDbLine
  10
 0
  20
-140
- 11
-0
- 21
 240
+ 11
+100
+ 21
+-24
   0
 LINE
   5
@@ -3099,7 +3105,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-PLOT
+PLOT
   6
 ByLayer
  62
@@ -3109,13 +3115,13 @@ ByLayer
 100
 AcDbLine
  10
-0
+-100
  20
-140
+-24
  11
-10
+100
  21
-150
+-24
   0
 LINE
   5
@@ -3123,7 +3129,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-PLOT
+PATCH-CUT
   6
 ByLayer
  62
@@ -3135,11 +3141,11 @@ AcDbLine
  10
 0
  20
-210
+240
  11
-10
+-100
  21
-200
+-24
   0
 LINE
   5
@@ -3147,7 +3153,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-PLOT
+PATCH-CUT
   6
 ByLayer
  62
@@ -3159,9 +3165,9 @@ AcDbLine
  10
 0
  20
-90
+240
  11
-35
+100
  21
 -24
   0
@@ -3171,7 +3177,7 @@ LINE
 100
 AcDbEntity
   8
-PATCH-PLOT
+PATCH-CUT
   6
 ByLayer
  62
@@ -3181,11 +3187,11 @@ ByLayer
 100
 AcDbLine
  10
-0
+-100
  20
-90
+-24
  11
--35
+100
  21
 -24
   0
@@ -3209,9 +3215,9 @@ AcDbLine
  20
 -24
  11
-35
+0
  21
--24
+80
   0
 LINE
   5
@@ -3231,83 +3237,11 @@ AcDbLine
  10
 0
  20
-90
+80
  11
 35
  21
 -24
-  0
-LINE
-  5
-66
-100
-AcDbEntity
-  8
-MYLAR-CUT
-  6
-ByLayer
- 62
-  256
-370
-   -1
-100
-AcDbLine
- 10
-0
- 20
-90
- 11
--35
- 21
--24
-  0
-LINE
-  5
-67
-100
-AcDbEntity
-  8
-PLOT
-  6
-ByLayer
- 62
-  256
-370
-   -1
-100
-AcDbLine
- 10
-0
- 20
-240
- 11
-0
- 21
-1000
-  0
-LINE
-  5
-68
-100
-AcDbEntity
-  8
-PLOT
-  6
-ByLayer
- 62
-  256
-370
-   -1
-100
-AcDbLine
- 10
-0
- 20
-1000
- 11
-10
- 21
-1000
   0
 ENDSEC
   0
@@ -3341,7 +3275,7 @@ AcDbDictionary
   0
 PLOTSETTINGS
   5
-69
+66
 100
 AcDbPlotSettings
   6
