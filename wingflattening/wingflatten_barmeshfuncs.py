@@ -314,10 +314,18 @@ def cpolyuvvectorstransF(uvpts, fptsT, cpoly):
     urvec = urvec*(1.0/P2.Dot(urvec, P2(vj.u, vj1.u)))
     vrvec = P2(vj1.u, -vj.u)
     vrvec = vrvec*(1.0/P2.Dot(vrvec, P2(vj.v, vj1.v)))
-
+    # this has gotten muddled.  Should be simpler since the following two are negative of each other
+    # P2.Dot(urvec, P2(vj.u, vj1.u)) = vj1.v*vj.u - vj.v*vj1.u
+    # P2.Dot(vrvec, P2(vj.v, vj1.v)) = vj1.u*vj.v - vj.u*vj1.v
+    # set solve: (urvec.u*vj + urvec.v*vj1).v = 0, which is why it uses only v components 
+    
     vjT = P2(*fptsT[cpoly[jp[1]]]) - cptT
     vj1T = P2(*fptsT[cpoly[(jp[1]+1)%n]]) - cptT
-
+    
+    # vc = p - cc["cpt"]
+    #vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
+    #vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v ->  vc
+    
     return { "cpt":cpt, "cptT":cptT, "urvec":urvec, "vrvec":vrvec, 
              "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T }
 
@@ -364,25 +372,6 @@ def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing, bFlattenedPat
         return vcsT + cc["cptT"]
     return vcs + cc["cpt"]
     nn = nodesixyShift(ix, iy)
-
-def projectdetaillines(sp, xpart, cpolycolumns, uspacing, vspacing, battendetaillines):
-    if not (xpart.lo < sp[0] < xpart.hi):
-        return [ ]
-    ix = xpart.GetPart(sp[0])
-    if len(cpolycolumns[ix]) == 0:
-        return [ ]
-    cc = min((cc  for cc in cpolycolumns[ix]), key=lambda X: (X["cpt"] - sp).Len())
-    if abs(cc["cpt"][0] - sp.u) > uspacing or abs(cc["cpt"][1] - sp.v) > vspacing:
-        return [ ]
-    
-    battendetails = [ ]
-    for lsp in battendetaillines:
-        vc = lsp + sp - cc["cpt"]
-        vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
-        vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v # should be same as vc
-        vcsT = cc["vjT"]*vcp.u + cc["vj1T"]*vcp.v
-        battendetails.append(vcsT + cc["cptT"])
-    return battendetails
 
     
 def subloopsequence(polynodesloop, polynodesset):
