@@ -62,7 +62,7 @@ from barmesh.basicgeo import I1, Partition1, P3, P2, Along
 from barmesh import barmesh
 
 class ImplicitAreaBallOffsetOfClosedContour:
-    def __init__(self, polyloopW, polyloop, polylineExtra=None, polylineExtraOffset=1.0):
+    def __init__(self, polyloopW, polyloop, bloopclosed=True):
         assert len(polyloopW) == len(polyloop)
         # polyloop is in UV space, polyloopW is the 3D space projections
         tbm = TriangleBarMesh()
@@ -72,8 +72,9 @@ class ImplicitAreaBallOffsetOfClosedContour:
         for i in range(len(polyloop)-1):
             tbm.bars.append(TriangleBar(polyloopN[i], polyloopN[i+1]))
             tbmF.bars.append(TriangleBar(polyloopFN[i], polyloopFN[i+1]))
-        tbm.bars.append(TriangleBar(polyloopN[0], polyloopN[-1]))
-        tbmF.bars.append(TriangleBar(polyloopFN[0], polyloopFN[-1]))
+        if bloopclosed:
+            tbm.bars.append(TriangleBar(polyloopN[0], polyloopN[-1]))
+            tbmF.bars.append(TriangleBar(polyloopFN[0], polyloopFN[-1]))
         
         self.tbarmesh = tbm
         self.tbarmeshF = tbmF
@@ -82,21 +83,6 @@ class ImplicitAreaBallOffsetOfClosedContour:
         self.hitreg = [0]*len(self.tbarmesh.bars)
         self.nhitreg = 0
 
-        if polylineExtra != None:
-            tbmE = TriangleBarMesh()
-            polylineE = [ tbmE.NewNode(p)  for p in polylineExtra ]
-            for i in range(len(polylineExtra)-1):
-                tbmE.bars.append(TriangleBar(polylineE[i], polylineE[i+1]))
-            self.tbarmeshExtra = tbmE
-            self.tboxingExtra = MakeTriangleBoxing(self.tbarmeshExtra)
-            self.hitregE = [0]*len(self.tbarmeshExtra.bars)
-            self.nhitregE = 0
-            self.polylineExtraOffset = polylineExtraOffset
-            
-        else:
-            self.tbarmeshExtra = None
-        
-        
     def Isb2dcontournormals(self):
         return False
 
@@ -124,8 +110,9 @@ class ImplicitAreaBallOffsetOfClosedContour:
         
     def DistPN(self, pz, n):
         self.DistP(pz, n.p)
-        if self.InsidePF(n.sp):
-            pz.r = -pz.r
+        if bloopclosed:
+            if self.InsidePF(n.sp):
+                pz.r = -pz.r
         
     def DistP(self, pz, p):
         dpz = DistPZ(p, pz.r)
@@ -145,29 +132,6 @@ class ImplicitAreaBallOffsetOfClosedContour:
         pz.r = dpz.r
         pz.v = dpz.v
         
-        if self.tbarmeshExtra != None:
-            self.DistPExtra(pz, p)
-
-        
-    # secondary bit of geometry for generating an offset with
-    def DistPExtra(self, pz, p):
-        rE = pz.r + self.polylineExtraOffset
-        dpzE = DistPZ(p, rE)
-        for ix, iy in self.tboxingExtra.CloseBoxeGenerator(p.x, p.x, p.y, p.y, dpzE.r):
-            tbox = self.tboxingExtra.boxes[ix][iy]
-            for i in tbox.pointis:
-                dpzE.DistPpointPZ(self.tboxingExtra.GetNodePoint(i))
-                
-        self.nhitregE += 1
-        for ix, iy in self.tboxingExtra.CloseBoxeGenerator(p.x, p.x, p.y, p.y, dpzE.r):
-            tbox = self.tboxingExtra.boxes[ix][iy]
-            for i in tbox.edgeis:
-                if self.hitregE[i] != self.nhitreg:
-                    dpzE.DistPedgePZ(*self.tboxingExtra.GetBarPoints(i))
-                    self.hitregE[i] = self.nhitregE
-        if dpzE.r < rE:
-            pz.r = dpzE.r - self.polylineExtraOffset
-            pz.v = dpzE.v
         
     def CutposN(self, nodefrom, nodeto, cp, r):  # point, vector, cp=known close point to narrow down the cutoff search
         p = nodefrom.p
