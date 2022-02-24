@@ -62,13 +62,14 @@ from barmesh.basicgeo import I1, Partition1, P3, P2, Along
 from barmesh import barmesh
 
 class ImplicitAreaBallOffsetOfClosedContour:
-    def __init__(self, polyloopW, polyloop, bloopclosed=True):
+    def __init__(self, polyloopW, polyloop, bloopclosed=True, boxwidth=-1):
         assert len(polyloopW) == len(polyloop)
         # polyloop is in UV space, polyloopW is the 3D space projections
         tbm = TriangleBarMesh()
         tbmF = TriangleBarMesh()
         polyloopN = [ tbm.NewNode(p)  for p in polyloopW ]
         polyloopFN = [ tbmF.NewNode(P3.ConvertGZ(p, 0.0))  for p in polyloop ]
+        self.bloopclosed = bloopclosed
         for i in range(len(polyloop)-1):
             tbm.bars.append(TriangleBar(polyloopN[i], polyloopN[i+1]))
             tbmF.bars.append(TriangleBar(polyloopFN[i], polyloopFN[i+1]))
@@ -78,8 +79,8 @@ class ImplicitAreaBallOffsetOfClosedContour:
         
         self.tbarmesh = tbm
         self.tbarmeshF = tbmF
-        self.tboxing = MakeTriangleBoxing(self.tbarmesh)
-        self.tboxingF = MakeTriangleBoxing(self.tbarmeshF)
+        self.tboxing = MakeTriangleBoxing(self.tbarmesh, boxwidth)
+        self.tboxingF = MakeTriangleBoxing(self.tbarmeshF, boxwidth)
         self.hitreg = [0]*len(self.tbarmesh.bars)
         self.nhitreg = 0
 
@@ -110,7 +111,7 @@ class ImplicitAreaBallOffsetOfClosedContour:
         
     def DistPN(self, pz, n):
         self.DistP(pz, n.p)
-        if bloopclosed:
+        if self.bloopclosed:
             if self.InsidePF(n.sp):
                 pz.r = -pz.r
         
@@ -247,6 +248,13 @@ def applyconsistenrotationtoflats(surfacemesh):
     # try and rotate so we align with the first edge
     i0 = surfacemesh["offsetloopI"][-10]
     i1 = surfacemesh["offsetloopI"][-5]
+    if surfacemesh["patchname"] == "US2":
+        i0 = surfacemesh["offsetloopI"][10]
+        i1 = surfacemesh["offsetloopI"][15]
+    if surfacemesh["patchname"] == "TSR":
+        i0 = surfacemesh["offsetloopI"][150]
+        i1 = surfacemesh["offsetloopI"][155]
+
     #v = P2(*surfacemesh["uvpts"][i1]) - offsetloopuvCentre
     #vF = P2(*ptsF[i1]) - offsetloopptsFCentre
     v = P2(*surfacemesh["uvpts"][i1]) - P2(*surfacemesh["uvpts"][i0])
@@ -356,4 +364,50 @@ def subloopsequence(polynodesloop, polynodesset):
     return polynodesseqs
         
 
+def polyloopvedgeseqpolyline(polyloop, vedge):
+    vedgeseq = [ [ ] ]
+    for i in range(len(polyloop)):
+        if abs(polyloop[i].v - vedge) < 1e-5:
+            if vedgeseq[-1]:
+                vedgeseq[-1][-1] = i
+            else:
+                vedgeseq[-1] = [i, i]
+        elif vedgeseq[-1]:
+            vedgeseq.append([])
+    if not vedgeseq[-1]:
+        vedgeseq.pop()
+    assert len(vedgeseq) == 1, vedgeseq
+    i0, i1 = vedgeseq[0]
+    assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop))
+    return i0, i1
+
+def singlepointwithinsurfaceoffset(wingshape, iapolyline, rad, sp, spstep):
+    rd2 = rad*2
+    nodeIn = WNode(wingshape.seval(sp), sp, -1)
+    nodeIn.pointzone = barmesh.PointZone(0, rd2, None)
+    iapolyline.DistP(nodeIn.pointzone, nodeIn.p)
+    assert nodeIn.pointzone.r < rad
+    while True:
+        sp += spstep
+        nodeOut = WNode(wingshape.seval(sp), sp, -1)
+        nodeOut.pointzone = barmesh.PointZone(0, rd2, None)
+        iapolyline.DistP(nodeOut.pointzone, nodeOut.p)
+        if not (nodeOut.pointzone.r < rad):
+            break
+        nodeIn = nodeOut
+    lam = iapolyline.CutposN(nodeOut, nodeIn, None, rad)
+    assert 0.0 <= lam <= 1.0, lam
+    spmid = Along(lam, nodeOut.sp, nodeIn.sp)
+    nodeMid = WNode(wingshape.seval(spmid), spmid, -1)
+    nodeMid.pointzone = barmesh.PointZone(0, rd2, None)
+    iapolyline.DistP(nodeMid.pointzone, nodeMid.p)
+    return nodeMid.sp
     
+def polylinewithinsurfaceoffset(wingshape, polyline, rad, spstep):
+    polylineW = [ wingshape.seval(q)  for q in polyline ]
+    iapolyline = ImplicitAreaBallOffsetOfClosedContour(polylineW, polyline, bloopclosed=False, boxwidth=0.01)
+    polylineoffset = [ ]
+    for sp in polyline:
+        polylineoffset.append(singlepointwithinsurfaceoffset(wingshape, iapolyline, rad, sp, spstep))
+    return polylineoffset
+
