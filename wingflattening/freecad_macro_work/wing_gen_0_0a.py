@@ -7,15 +7,38 @@ version = 0
 
 import Draft
 import DraftGeomUtils
-import math
+import math, os
 import Part
-import os
 from FreeCAD import Vector
 import Mesh
 import pandas as pd
 import numpy as np
 import FreeCAD as App
 
+doc = App.ActiveDocument
+config = doc.Spreadsheet
+
+dirname = os.path.dirname(os.path.abspath(__file__))
+aerofoil_file = os.path.join(dirname, config.aerofoilcsv)
+OP_file = os.path.join(dirname, config.OPcsv)
+print(aerofoil_file)
+nameFile = aerofoil_file.split("/")[-1][:-4]
+print(nameFile)
+
+#sectionsgroup = doc.getObject("SectionsGroup")
+#if not sectionsgroup:
+#	sectionsgroup = app.addObject("App::DocumentObjectGroup", "SectionsGroup")
+#else:
+	
+
+secs = eval(config.secs)
+semi_span = secs[-1]
+sweeps = angToPlacement(eval(config.sweeps), secs)
+dihedrals = angToPlacement(eval(config.dihedrals), secs)
+chords = eval(config.chords)
+twists = eval(config.twists)
+doubleSurfs= eval(config.double_surf_dist)
+seamDSs = eval(config.seamDS)
 
 #Function to mesh between two aero-profiles
 def foil_mesh(points1, points2, trianglepoints):
@@ -101,26 +124,6 @@ def convertDS(pts,ds, seam,chord):
 	return aerof,dsp
 		
 
-fname = 'ui1720.csv'
-dirname = os.path.dirname(os.path.abspath(__file__))
-aerofoil_file = os.path.join(dirname, fname)
-print(aerofoil_file)
-OP_file = 'RT13xyz.csv'
-OP_file = os.path.join(dirname,OP_file)
-
-nameFile = aerofoil_file.split("/")[-1][:-4]
-print(nameFile)
-
-secs = eval(App.ActiveDocument.Spreadsheet.secs)
-semi_span = secs[-1]
-
-sweeps = angToPlacement(eval(App.ActiveDocument.Spreadsheet.sweeps),secs)
-dihedrals = angToPlacement(eval(App.ActiveDocument.Spreadsheet.dihedrals),secs)
-chords = eval(App.ActiveDocument.Spreadsheet.chords)
-twists = eval(App.ActiveDocument.Spreadsheet.twists)
-doubleSurfs= eval(App.ActiveDocument.Spreadsheet.double_surf_dist)
-seamDSs= eval(App.ActiveDocument.Spreadsheet.seamDS)
-
 trianglepoints = []
 
 
@@ -130,7 +133,7 @@ df = pd.DataFrame()
 
 
 for station in range(len(secs)):
-	points,dsp=convertDS(pts,doubleSurfs[station], seamDSs[station], chords[station])
+	points, dsp = convertDS(pts, doubleSurfs[station], seamDSs[station], chords[station])
 	print(len(points))
 	section = Draft.makeWire(points, closed = False)
 
@@ -142,7 +145,7 @@ for station in range(len(secs)):
 	if station > 0:
 		trianglepoints = foil_mesh(last_points,  points, trianglepoints)
 		if station == len(secs)-1:
-			meshy =Mesh.Mesh(trianglepoints)
+			meshy = Mesh.Mesh(trianglepoints)
 			Mesh.show(meshy)
 #			print(meshy)
 	last_points = points
