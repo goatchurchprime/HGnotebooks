@@ -9,14 +9,14 @@ def loadwinggeometry(fname, fac=1.0):
     r = csv.reader(open(fname))
     k = list(r)
     wingmeshuvudivisions = eval(k[0][-3])
-    assert (wingmeshuvudivisions ==len(k[0])/3-1), 'Section numbering incorrect'
+    assert (wingmeshuvudivisions == len(k[0])/3-1), 'Section numbering incorrect'
 
     sections = []
     zvals = []
     for i in range(0, (wingmeshuvudivisions*3)+2, 3):
         pts = [ ]
         z = float(k[2][i+1])
-        for j in range(2, 70):
+        for j in range(2, len(k)):
             assert (z == float(k[j][i+1]))
             pts.append(P2(float(k[j][i]), float(k[j][i+2]))*fac)
         zvals.append(z*fac)
@@ -55,8 +55,8 @@ def winguv2xyz(uvx, uvy, sections, zvals):
 
 
 class WingShape:
-    def __init__(self, fname):
-        self.Isect = 7  # Fix the section all rectangle unwrapping is relative to
+    def __init__(self, fname, Isect=7):
+        self.Isect = Isect  # Fix the section all rectangle unwrapping is relative to
         self.sections, self.zvals = loadwinggeometry(fname, 0.001)
         self.nsections = len(self.zvals)
         assert self.nsections == len(self.sections)
