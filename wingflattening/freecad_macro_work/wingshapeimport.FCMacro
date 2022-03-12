@@ -1,0 +1,7 @@
+import os
+print(os.path.abspath("."))
+import sys
+print(sys.path)
+sys.path.append("/home/julian/.FreeCAD/Macro/wingshapeproject")
+import wing_gen_0_0a
+
