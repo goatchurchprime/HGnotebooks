@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Macro to make project7wing as list of wires and single bspline surface
+# Module to read the sections from SectionGroup and define the seval(u, v) parametric function on this surface
 
 import FreeCAD as App
 import Draft, Part, Mesh
