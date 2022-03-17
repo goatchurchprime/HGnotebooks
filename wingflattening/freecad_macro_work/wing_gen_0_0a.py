@@ -25,10 +25,16 @@ print(aerofoil_file)
 nameFile = aerofoil_file.split("/")[-1][:-4]
 print(nameFile)
 
-#sectionsgroup = doc.getObject("SectionsGroup")
-#if not sectionsgroup:
-#	sectionsgroup = app.addObject("App::DocumentObjectGroup", "SectionsGroup")
-#else:
+
+
+def angToPlacement(angs,secs):
+	ys = [0]
+	for i in range(1,len(angs)):
+		slope = math.tan(math.radians(angs[i]))
+		dy = slope*(secs[i]-secs[i-1])
+		ys.append(ys[-1]+dy)
+	return ys
+
 	
 
 secs = eval(config.secs)
@@ -80,14 +86,6 @@ def interpolate_length(lengths, secs, interp):
 	for edge in wire:
 		ys.append(edge.lastVertex().Y)
 
-	return ys
-
-def angToPlacement(angs,secs):
-	ys = [0]
-	for i in range(1,len(angs)):
-		slope = math.tan(math.radians(angs[i]))
-		dy = slope*(secs[i]-secs[i-1])
-		ys.append(ys[-1]+dy)
 	return ys
 
 def convertDS(pts,ds, seam,chord):

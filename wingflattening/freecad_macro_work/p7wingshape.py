@@ -28,6 +28,7 @@ def loadwinggeometry(fname):
 def getemptyobject(doc, objtype, objname):
 	if doc.findObjects(Name=objname):
 		doc.removeObject(objname)
+		doc.recompute()
 	return doc.addObject(objtype, objname)
 
 def createobjectingroup(doc, group, objtype, objname):
@@ -36,26 +37,42 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-def makesectionsandsplineedges(doc, sg, sections, zvals):
+def deriveparametizationforallsections(chosensection):
+	points = [App.Vector(0, -p[0], p[1])  for p in chosensection]
+	chordlengths = [ 0 ]
+	for p0, p1 in zip(points, points[1:]):
+		chordlengths.append(chordlengths[-1] + (p0-p1).Length)
+	m = chordlengths[-1]*0.5
+	return [ c-m  for c in chordlengths ]
+
+def makesectionsandsplineedges(doc, sg, sections, zvals, sectionparameters):
 	secbsplineedges = [ ]
 	for i in range(len(zvals)):
 		points = [App.Vector(0, -p[0], p[1])  for p in sections[i]]
 		placement = App.Placement(App.Vector(zvals[i], 0, 0), App.Rotation())
-		ws = createobjectingroup(doc, sg, "Part::Feature", "section%d"%i)
-		ws.Shape = Part.makePolygon(points)
-		ws.Placement = placement
 		secbspline = Part.BSplineCurve()
-		secbspline.approximate(points, Parameters=range(len(points)))
-		secbsplineE = Part.Edge(secbspline)
-		secbsplineE.Placement = placement
-		secbsplineedges.append(secbsplineE)
-	return secbsplineedges
+		secbspline.approximate(points, Parameters=sectionparameters)
+		ws = createobjectingroup(doc, sg, "Part::Feature", "section%d"%i)
+		ws.Shape = secbspline.toShape()
+		ws.Placement = placement
 	
+
+# Spreadsheet containing all the wingsections
 sections, zvals = loadwinggeometry(os.path.join(os.path.dirname(os.path.abspath(__file__)), "P7-211221-XYZ geometry.csv"))
+
+# clear present Groups (FC folders).  (Doesn't work reliably)
 sg = getemptyobject(doc, "App::DocumentObjectGroup", "SectionGroup")
-secbsplineedges = makesectionsandsplineedges(doc, sg, sections, zvals)
+
+# pick the curve lengths of an average section to apply to the parametrization of all the other sections 
+chosenparametrization = deriveparametizationforallsections(sections[7])
+
+# create the sections (as consistently parametrized bsplines) and also return 
+makesectionsandsplineedges(doc, sg, sections, zvals, chosenparametrization)
+
+# Loft this series of section curves
 wingloft = getemptyobject(doc, "Part::Feature", "wingloft")
-wingloft.Shape = Part.makeLoft(secbsplineedges)
+wingloft.Shape = Part.makeLoft([l.Shape  for l in sg.OutList])
 
 doc.recompute()
 
+# f = body.Faces[0]; e = f.Edges[0]; e.curveOnSurface(i)
