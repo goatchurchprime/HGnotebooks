@@ -2,7 +2,6 @@
 # Macro to make project7wing as list of wires and single bspline surface
 
 import FreeCAD as App
-import FreeCADGui as Gui
 import Draft, Part, Mesh
 import DraftGeomUtils
 import math, os, csv
