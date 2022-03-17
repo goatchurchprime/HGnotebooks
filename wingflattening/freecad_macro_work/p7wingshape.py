@@ -51,7 +51,12 @@ def makesectionsandsplineedges(doc, sg, sections, zvals, sectionparameters):
 		points = [App.Vector(0, -p[0], p[1])  for p in sections[i]]
 		placement = App.Placement(App.Vector(zvals[i], 0, 0), App.Rotation())
 		secbspline = Part.BSplineCurve()
-		secbspline.approximate(points, Parameters=sectionparameters)
+		
+		# make sure it doesn't close the curve or cause bad spline tangents
+		pointsnc = points[:-1]+[points[-1]+Vector(0,0,0.001)]
+		secbspline.approximate(pointsnc, Parameters=sectionparameters, DegMin=2, DegMax=2)
+		assert not secbspline.isClosed()
+		
 		ws = createobjectingroup(doc, sg, "Part::Feature", "section_%d"%(i+1))
 		ws.Shape = secbspline.toShape()
 		ws.Placement = placement
