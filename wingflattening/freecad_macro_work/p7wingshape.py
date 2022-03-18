@@ -76,7 +76,7 @@ makesectionsandsplineedges(doc, sg, sections, zvals, chosenparametrization)
 
 # Loft this series of section curves
 wingloft = getemptyobject(doc, "Part::Feature", "wingloft")
-wingloft.Shape = Part.makeLoft([l.Shape  for l in sg.OutList])
+wingloft.Shape = Part.makeLoft([l.Shape  for l in sg.OutList], False, True)
 
 doc.recompute()
 
