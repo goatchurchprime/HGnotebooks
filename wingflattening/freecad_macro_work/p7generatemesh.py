@@ -4,11 +4,13 @@
 import FreeCAD as App
 import Draft, Part, Mesh
 import DraftGeomUtils
-import math, os, csv
+import math, os, csv, sys
 import numpy
 from FreeCAD import Vector, Rotation
 
+sys.path.append(os.path.split(__file__)[0])
 from p7modules.p7wingeval import urange, vrange, seval
+
 print("Rangess", urange, vrange)
 
 doc = App.ActiveDocument
