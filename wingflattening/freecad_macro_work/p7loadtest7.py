@@ -7,6 +7,7 @@ import DraftGeomUtils
 import math, os, csv, json
 from FreeCAD import Vector, Rotation
 
+epsilonmatch = 0.001
 doc = App.ActiveDocument
 	
 def getemptyobject(doc, objtype, objname):
@@ -30,14 +31,30 @@ doc.recompute()
 # Generate constraints from matching nodes
 pointindexes = [ ]
 for i, e in enumerate(cutlinesketch.Geometry):
-	pointindexes.append((e.StartPoint.x, e.StartPoint.y, e.StartPoint.z, i, 1))
-	pointindexes.append((e.EndPoint.x, e.EndPoint.y, e.EndPoint.z, i, 2))
-pointindexes.sort()
+	pointindexes.append((e.StartPoint, i, 1))
+	pointindexes.append((e.EndPoint, i, 2))
+pointindexes.sort(key=lambda X:(X[0].x, X[0].y, X[0].z))
 
-for i in range(len(pointindexes)-1):
-	if pointindexes[i][:3] == pointindexes[i+1][:3]:
-		cutlinesketch.addConstraint(Sketcher.Constraint("Coincident", pointindexes[i][3], pointindexes[i][4], pointindexes[i+1][3], pointindexes[i+1][4]))
+if epsilonmatch == 0:
+	for i in range(len(pointindexes)-1):
+		if pointindexes[i][0] == pointindexes[i+1][0]:
+			cutlinesketch.addConstraint(Sketcher.Constraint("Coincident", pointindexes[i][1], pointindexes[i][2], pointindexes[i+1][1], pointindexes[i+1][2]))
 
+else:
+	pointindexesremaining = list(range(len(pointindexes)))
+	while pointindexesremaining:
+		pii = pointindexesremaining.pop()
+		j = len(pointindexesremaining)- 1
+		while j > 0:
+			i = pointindexesremaining[j]
+			d = (pointindexes[i][0] - pointindexes[pii][0]).Length
+			if d < epsilonmatch:
+				cutlinesketch.addConstraint(Sketcher.Constraint("Coincident", pointindexes[pii][1], pointindexes[pii][2], pointindexes[i][1], pointindexes[i][2]))
+				if d != 0:
+					print(d, pointindexes[pii])
+				del pointindexesremaining[j]
+			j -= 1
+				
 doc.recompute()
 
 # use FreeCADGui.Selection.getSelection() to get a selected object
