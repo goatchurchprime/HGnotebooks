@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-# Macro to make project7wing as list of wires and single bspline surface
+
+# This macro is for generating a set of PatchUVPolygons (polygons in UV space)
+# derived from the cutlinesketch diagram, which are to be used as the basis of 
+# the flattening, offsetting and trimming 
 
 import FreeCAD as App
 import Draft, Part, Mesh
@@ -82,22 +85,67 @@ def extractsequences(gcptorders, gcptnmap):
 			seqs.append(seq)
 	return seqs
 
-# clear present Groups (FC folders).  (Doesn't work reliably)
-clw = getemptyobject(doc, "App::DocumentObjectGroup", "CutlineWires")
-
-gcptsets, gcptnmap = extractcoincidentnodes(cutlinesketch)
-gcptorders = [ coincidentnodetanges(cutlinesketch, gcptset)  for gcptset in gcptsets ]
-seqs = extractsequences(gcptorders, gcptnmap)
-
-for n, seq in enumerate(seqs):
-	print(n, seq)
+def sequencetopoints(cutlinesketch, seq, legsampleleng):
 	points = [ ]
 	for i, d in seq:
 		l = cutlinesketch.Geometry[i]
-		params = numpy.linspace(l.FirstParameter, l.LastParameter, 20)
+		num = int(math.ceil(l.length()/legsampleleng) + 1)
+		params = numpy.linspace(l.FirstParameter, l.LastParameter, num)
 		if d == 2:
 			params = list(reversed(params))
-		for a in params:
+		for a in params[:-1]:
 			points.append(l.value(a))
-	ws = createobjectingroup(doc, clw, "Part::Feature", "wireP_%d"%(n+1))
-	ws.Shape = Part.makePolygon(points)
+	return points
+	
+def orientationclockwise(points):
+	jbl, ptbl = min(enumerate(points), key=lambda X:(X[1].y, X[1].x))
+	jblp1 = (jbl+1)%len(points)
+	jblp2 = (jbl+2)%len(points)
+	jblm1 = (jbl+len(points)-1)%len(points)
+	jblm2 = (jbl+len(points)-2)%len(points)
+	ptblFore = points[jblp1]
+	ptblBack = points[jblm1]
+	vFore = ptblFore - ptbl
+	vBack = ptblBack - ptbl
+	#print (ptblBack, ptbl, ptblFore, jbl, jblp1, jblm1, points[jblp2], points[jblm2])
+	return (math.atan2(vFore.x, vFore.y) < math.atan2(vBack.x, vBack.y))
+
+
+patchnamelookups = {   
+	'US1':(0.851, 0.865),
+	'US2':(3.907, 0.864),
+	'LEI1':(0.207, 0.106),
+	'LEI2':(0.622, 0.106),
+	'LEI3':(1.045, 0.106),
+	'LEI4':(1.481, 0.106),
+	'LEI5':(2.158, 0.106),
+	'LEI6':(3.484, 0.106),
+	'LEI7':(4.734, 0.106),
+	'LEI8':(5.612, 0.106),
+	'TSF1':(0.851, -0.294),
+	'TSF2':(3.907, -0.294),
+	'TSM1':(0.415, -0.913),
+	'TSM2':(1.266, -0.913),
+	'TSM3':(3.394, -0.827),
+	'TSR':(4.082, -1.073) }
+def getnameofpolygon(points):
+	avgpt = sum(points, Vector())*(1.0/len(points))
+	closestname = min(((avgpt - Vector(p[0]*1000, p[1]*1000)).Length, name)  for name, p in patchnamelookups.items())[1]
+	return closestname
+
+# clear present Groups (FC folders).  (Doesn't work reliably)
+clw = getemptyobject(doc, "App::DocumentObjectGroup", "PatchUVPolygons")
+
+# find the sets of nodes from the coincident constraints
+gcptsets, gcptnmap = extractcoincidentnodes(cutlinesketch)
+gcptorders = [ coincidentnodetanges(cutlinesketch, gcptset)  for gcptset in gcptsets ]
+
+# derive the sequences of (edge, startend) for each contour
+seqs = extractsequences(gcptorders, gcptnmap)
+
+for n, seq in enumerate(seqs):
+	points = sequencetopoints(cutlinesketch, seq, legsampleleng=3.0)
+	if not orientationclockwise(points):
+		closestname = getnameofpolygon(points)
+		ws = createobjectingroup(doc, clw, "Part::Feature", "%s_%d"%(closestname, n))
+		ws.Shape = Part.makePolygon(points+[points[0]])
