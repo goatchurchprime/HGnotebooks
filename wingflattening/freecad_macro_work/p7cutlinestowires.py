@@ -147,5 +147,5 @@ for n, seq in enumerate(seqs):
 	points = sequencetopoints(cutlinesketch, seq, legsampleleng=3.0)
 	if not orientationclockwise(points):
 		closestname = getnameofpolygon(points)
-		ws = createobjectingroup(doc, clw, "Part::Feature", "%s_%d"%(closestname, n))
+		ws = createobjectingroup(doc, clw, "Part::Feature", "%s"%(closestname))
 		ws.Shape = Part.makePolygon(points+[points[0]])

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-# Macro to make project7wing as list of wires and single bspline surface
+
+# Basic macro that just generates untrimmedwingmesh with a given set of steps 
+# in u and v from the list of wire sections in SectionGroup 
+# This should be exactly the same shape as the wingloft shape
 
 import FreeCAD as App
 import Draft, Part, Mesh
@@ -36,6 +39,6 @@ def genfacets(usteps, vsteps):
 	return facets
 	
 # generate and plot the meshed object
-mesh = getemptyobject(doc, "Mesh::Feature", "genwingmesh")
-mesh.Mesh = Mesh.Mesh(genfacets(12, 30))
+mesh = getemptyobject(doc, "Mesh::Feature", "untrimmedwingmesh")
+mesh.Mesh = Mesh.Mesh(genfacets(60, 120))
 mesh.ViewObject.Lighting = "Two side"
