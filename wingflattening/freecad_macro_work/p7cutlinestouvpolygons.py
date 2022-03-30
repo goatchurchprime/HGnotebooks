@@ -134,7 +134,7 @@ def getnameofpolygon(points):
 	return closestname
 
 # clear present Groups (FC folders).  (Doesn't work reliably)
-clw = getemptyobject(doc, "App::DocumentObjectGroup", "PatchUVPolygons")
+clw = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygons")
 
 # find the sets of nodes from the coincident constraints
 gcptsets, gcptnmap = extractcoincidentnodes(cutlinesketch)
@@ -147,5 +147,8 @@ for n, seq in enumerate(seqs):
 	points = sequencetopoints(cutlinesketch, seq, legsampleleng=3.0)
 	if not orientationclockwise(points):
 		closestname = getnameofpolygon(points)
-		ws = createobjectingroup(doc, clw, "Part::Feature", "%s"%(closestname))
+		ws = createobjectingroup(doc, clw, "Part::Feature", "w%s"%(closestname))
 		ws.Shape = Part.makePolygon(points+[points[0]])
+		lam = n/len(seqs)
+		ws.ViewObject.PointColor = (0.5 + lam*0.5, 1.0 - lam*0.5, 0.8)
+

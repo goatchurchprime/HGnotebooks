@@ -10,6 +10,10 @@ from FreeCAD import Vector, Rotation
 
 doc = App.ActiveDocument
 	
+# If you are getting the following error:
+#  <class 'ReferenceError'>: Cannot access attribute 'Shape' of deleted object
+# You might need to restart FreeCAD since it seems capable of leaving submodule of 
+# a macro holding on to pointers of some previous objects from a closed file
 
 # parametric definition functions for the wingshape
 def paramintconv(u, uvals):

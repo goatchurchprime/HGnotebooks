@@ -12,11 +12,35 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
-from p7modules.p7wingeval import urange, vrange, seval
+from p7modules.p7wingeval import urange, vrange, seval, leadingedgepoints
+
 
 print("Rangess", urange, vrange)
+from p7modules.p7wingeval import sections, leadingedgepoints, uvals
+
+def paramintconv(u, uvals):
+	j0, j1 = 0, len(uvals)-1
+	while j1 - j0 >= 2:
+		j = (j1 + j0)//2
+		if u <= uvals[j]:
+			j1 = j
+		else:
+			j0 = j
+	return j0 + (u-uvals[j0])/(uvals[j1]-uvals[j0])
+
+def sevalG(u, v):
+	uc = paramintconv(u, uvals)
+	i = max(0, min(len(uvals)-2, int(uc)))
+	m = uc - i
+	p0 = sections[i].Shape.valueAt(v)
+	p1 = sections[i+1].Shape.valueAt(v)
+	return p0*(1-m) + p1*m
+
+
 
 doc = App.ActiveDocument
+print(sevalG(1,1))
+
 	
 def getemptyobject(doc, objtype, objname):
 	if doc.findObjects(Name=objname):

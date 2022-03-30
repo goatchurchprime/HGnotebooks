@@ -4,7 +4,6 @@ print(sys.path[-1])
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along
 from p7modules.barmesh import barmesh
 from p7modules.barmesh.barmesh import Bar
-print(Bar)
 import numpy
 
 class WNode:
@@ -29,7 +28,7 @@ class WNode:
     def cperpbardotN(self, bar, v):
         assert False
 
-def MakeRectBarmeshForWingParametrization(wingshape, xpart, ypart):
+def MakeRectBarmeshForWingParametrization(seval, xpart, ypart):
     bm = barmesh.BarMesh()
     nxs = xpart.nparts + 1
 
@@ -40,7 +39,7 @@ def MakeRectBarmeshForWingParametrization(wingshape, xpart, ypart):
         bfirstrow = (len(nodes) == 0)
         for i in range(nxs):
             sp = P2(xpart.vs[i], y)
-            nnode = bm.AddNode(WNode(wingshape.seval(sp), sp, -1))
+            nnode = bm.AddNode(WNode(seval(sp[0], sp[1]), sp, -1))
             assert nnode == nodes[-1]
             if not bfirstrow:
                 xbars.append(Bar(nodes[-nxs - 1], nodes[-1]))
@@ -384,15 +383,15 @@ def polyloopvedgeseqpolyline(polyloop, vedge):
     assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop))
     return i0, i1
 
-def singlepointwithinsurfaceoffset(wingshape, iapolyline, rad, sp, spstep):
+def singlepointwithinsurfaceoffset(seval, iapolyline, rad, sp, spstep):
     rd2 = rad*2
-    nodeIn = WNode(wingshape.seval(sp), sp, -1)
+    nodeIn = WNode(seval(sp[0], sp[1]), sp, -1)
     nodeIn.pointzone = barmesh.PointZone(0, rd2, None)
     iapolyline.DistP(nodeIn.pointzone, nodeIn.p)
     assert nodeIn.pointzone.r < rad
     while True:
         sp += spstep
-        nodeOut = WNode(wingshape.seval(sp), sp, -1)
+        nodeOut = WNode(seval(sp[0], sp[1]), sp, -1)
         nodeOut.pointzone = barmesh.PointZone(0, rd2, None)
         iapolyline.DistP(nodeOut.pointzone, nodeOut.p)
         if not (nodeOut.pointzone.r < rad):
@@ -401,16 +400,16 @@ def singlepointwithinsurfaceoffset(wingshape, iapolyline, rad, sp, spstep):
     lam = iapolyline.CutposN(nodeOut, nodeIn, None, rad)
     assert 0.0 <= lam <= 1.0, lam
     spmid = Along(lam, nodeOut.sp, nodeIn.sp)
-    nodeMid = WNode(wingshape.seval(spmid), spmid, -1)
+    nodeMid = WNode(wingshape.seval(spmid[0], spmid[1]), spmid, -1)
     nodeMid.pointzone = barmesh.PointZone(0, rd2, None)
     iapolyline.DistP(nodeMid.pointzone, nodeMid.p)
     return nodeMid.sp
     
-def polylinewithinsurfaceoffset(wingshape, polyline, rad, spstep):
-    polylineW = [ wingshape.seval(q)  for q in polyline ]
+def polylinewithinsurfaceoffset(seval, polyline, rad, spstep):
+    polylineW = [ seval(q[0], q[1])  for q in polyline ]
     iapolyline = ImplicitAreaBallOffsetOfClosedContour(polylineW, polyline, bloopclosed=False, boxwidth=0.01)
     polylineoffset = [ ]
     for sp in polyline:
-        polylineoffset.append(singlepointwithinsurfaceoffset(wingshape, iapolyline, rad, sp, spstep))
+        polylineoffset.append(singlepointwithinsurfaceoffset(seval, iapolyline, rad, sp, spstep))
     return polylineoffset
 
