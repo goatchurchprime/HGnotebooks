@@ -11,6 +11,8 @@ import numpy
 from FreeCAD import Vector, Rotation
 import flatmesh
 
+sys.path.append(os.path.split(__file__)[0])
+
 doc = App.ActiveDocument
 
 def getemptyobject(doc, objtype, objname):

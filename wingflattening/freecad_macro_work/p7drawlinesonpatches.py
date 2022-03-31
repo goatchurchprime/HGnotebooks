@@ -10,6 +10,8 @@ import math, os, csv, sys
 import numpy
 from FreeCAD import Vector, Rotation
 
+sys.path.append(os.path.split(__file__)[0])
+
 #from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolyuvvectorstransF
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingeval import urange, vrange
