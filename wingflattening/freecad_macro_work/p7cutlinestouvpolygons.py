@@ -19,9 +19,14 @@ print("Rangesss", urange, vrange)
 doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
 
+def removeObjectRecurse(objname):
+	for o in doc.findObjects(Name=objname).OutList:
+		removeObjectRecurse(o.Name)
+	doc.removeObject(objname)
+	
 def getemptyobject(doc, objtype, objname):
 	if doc.findObjects(Name=objname):
-		doc.removeObject(objname)
+		removeObjectRecurse(objname)
 		doc.recompute()
 	return doc.addObject(objtype, objname)
 
