@@ -83,6 +83,7 @@ def transformalignfpts(uvpts, fpts, patchname):
 for i in range(0, len(uvtriangulations)):
 	t = uvtriangulations[i]
 	m = t.Mesh
+	uvpts = [ p.Vector  for p in m.Points ]
 	pts = [ seval(p.Vector.x, p.Vector.y)  for p in m.Points ]
 	tris = [ x.PointIndices  for x in m.Facets ]
 	facets = [ [ pts[i0], pts[i1], pts[i2] ]  for i0, i1, i2 in tris ]
@@ -107,7 +108,6 @@ for i in range(0, len(uvtriangulations)):
 	fmesh.Mesh = Mesh.Mesh(rffacets)
 	fmesh.ViewObject.Lighting = "Two side"
 	fmesh.ViewObject.ShapeColor = t.ViewObject.ShapeColor
-	#fmesh.Placement.Base = Vector(0,-(i+1)*1000,0)
 	
 	
 for i in range(0, len(uvtriangulations)):

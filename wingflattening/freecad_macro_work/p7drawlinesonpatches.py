@@ -19,9 +19,14 @@ from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
 
 doc = App.ActiveDocument
 
+def removeObjectRecurse(objname):
+	for o in doc.findObjects(Name=objname)[0].OutList:
+		removeObjectRecurse(o.Name)
+	doc.removeObject(objname)
+	
 def getemptyobject(doc, objtype, objname):
 	if doc.findObjects(Name=objname):
-		doc.removeObject(objname)
+		removeObjectRecurse(objname)
 		doc.recompute()
 	return doc.addObject(objtype, objname)
 
