@@ -95,6 +95,10 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 			 "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T, "area":area }
 
 uspacing, vspacing = 20, 20
+battonuvlines = [ ]
+for u in leadingedgelengths[1:-1]:
+	battonuvlines.append([P2(u, v)  for v in numpy.arange(vrange[0]-vspacing, vrange[1]+vspacing, vspacing)])
+
 def generateTransColumns(uvmesh, flattenedmesh):
 	uvtranslist = [ cpolyuvvectorstransC(cp2t(a.Points), cp2t(b.Points))  for a, b in zip(uvmesh.Mesh.Facets, flattenedmesh.Mesh.Facets) ]
 	areacutoff = max(t["area"]  for t in uvtranslist)*0.2
@@ -192,6 +196,18 @@ for I in range(len(uvtriangulations)):
 			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
 			ws.ViewObject.PointColor = (1.0,0.0,0.0)
 			ws.ViewObject.LineColor = (1.0,0.0,0.0)
+
+	battonlineFS= [ ]
+	for battonuvline in battonuvlines:
+		battonlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in battonuvline ]
+		battonlineFS.extend(sliceupatnones(battonlineF))
+	for spsS in battonlineFS:
+		if len(spsS) > 2:
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(pencilgS.Name[1:], len(pencilgS.OutList)))
+			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+			ws.ViewObject.PointColor = (0.5,0.0,0.0)
+			ws.ViewObject.LineColor = (0.5,0.0,0.0)
+
 
 	battendetailsegments = [ ]
 	for sporigin, sptriangle in battonuvdetailpositions:
