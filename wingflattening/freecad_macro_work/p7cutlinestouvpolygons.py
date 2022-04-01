@@ -20,7 +20,7 @@ doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
 
 def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname).OutList:
+	for o in doc.findObjects(Name=objname)[0].OutList:
 		removeObjectRecurse(o.Name)
 	doc.removeObject(objname)
 	

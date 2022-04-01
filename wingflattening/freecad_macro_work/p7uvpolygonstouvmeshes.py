@@ -14,9 +14,14 @@ sys.path.append(os.path.split(__file__)[0])
 
 doc = App.ActiveDocument
 
+def removeObjectRecurse(objname):
+	for o in doc.findObjects(Name=objname)[0].OutList:
+		removeObjectRecurse(o.Name)
+	doc.removeObject(objname)
+	
 def getemptyobject(doc, objtype, objname):
 	if doc.findObjects(Name=objname):
-		doc.removeObject(objname)
+		removeObjectRecurse(objname)
 		doc.recompute()
 	return doc.addObject(objtype, objname)
 
@@ -26,7 +31,7 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-patchuvpolygons = doc.UVPolygons.OutList
+patchuvpolygons = doc.UVPolygonsOffsets.OutList
 uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 
 
@@ -36,69 +41,12 @@ uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
 from p7modules.barmesh import barmesh
 from p7modules.p7wingflatten_barmeshfuncs import ImplicitAreaBallOffsetOfClosedContour, WNode
-from p7modules.p7wingflatten_barmeshfuncs import polyloopvedgeseqpolyline, polylinewithinsurfaceoffset
 from p7modules.p7wingeval import urange, vrange, seval, leadingedgelengths
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingflatten_barmeshfuncs import MakeRectBarmeshForWingParametrization, subloopsequence
 from p7modules.barmesh.barmeshslicer import BarMeshSlicer
 from p7modules.barmesh.mainfunctions import nodewithinpairs, BarMeshContoursN
 from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolytriangulate
-
-def splicereplacedpolylineintoloop(polyloop, i0, i1, polyline, legsampleleng):
-	assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop))
-	def intermediatesamplelegsteps(p0, p1, legsampleleng):
-		Nsteps = int((p1 - p0).Len()/legsampleleng + 0.9)
-		return [ Along(i/Nsteps, p0, p1)  for i in range(1, Nsteps) ]
-	return polyloop[:i0] + \
-			intermediatesamplelegsteps(polyloop[i0-1], polyline[0], legsampleleng) + \
-			polyline + \
-			intermediatesamplelegsteps(polyline[-1], polyloop[i1+1], legsampleleng) + \
-			polyloop[i1+1:]
-
-
-"""
-s = doc.PatchUVPolygons.OutList[0]
-print("Working on", s.Name)
-w = s.Shape
-plcentre = w.CentreOfMass
-polyloop = [ v.Point  for v in w.OrderedVertexes ]
-plurg, plvrg = I1(w.BoundBox.XMin, w.BoundBox.XMax), I1(w.BoundBox.YMin, w.BoundBox.YMax)
-surfacemeshesdict = dict((s.Name, s.Shape)  for s in doc.PatchUVPolygons.OutList)
-
-
-# double folds are at 12-6 and 24-6 before the offset by 6
-offsetstretchcomponents = [ ("US1", -10, vrange[1], 0.006, P2(0, 0.002), True), 
-                            ("US2", 0, vrange[1], 0.006, P2(0, 0.002), True), 
-                            ("TSM1", 10, vrange[0], 0.012, P2(0, -0.002), False), 
-                            ("TSM1", 10, vrange[0], 0.018, P2(0, -0.002), True), 
-                            ("TSM2", 0, vrange[0], 0.012, P2(0, -0.002), False), 
-                            ("TSM2", 0, vrange[0], 0.018, P2(0, -0.002), True), 
-                            ("TSR", 0, vrange[0], 0.012, P2(0, -0.002), False), 
-                            ("TSR", 0, vrange[0], 0.018, P2(0, -0.002), True) 
-                          ]
-polylinefoldlinepenmarks = { }
-for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
-    surfacemesh = surfacemeshesdict[patchname]
-    assert "polyloopOrg" not in surfacemesh
-    polyloop = surfacemesh["polyloop"]
-    polyloop = polyloop[irot:] + polyloop[:irot]
-    i0, i1 = polyloopvedgeseqpolyline(polyloop, vedge)
-    print(patchname, i0, i1, rad)
-    polyline = polyloop[i0:i1+1]
-    if patchname not in polylinefoldlinepenmarks:
-        polylinefoldlinepenmarks[patchname] = [ polyline ]
-    polylineOffset = polylinewithinsurfaceoffset(wingshape, polyline, rad, spstep)
-    if spliceloop: 
-        polyloop = splicereplacedpolylineintoloop(polyloop, i0, i1, polylineOffset, parapolygraph.legsampleleng)
-        surfacemesh["polyloopOrg"] = surfacemesh["polyloop"]
-        surfacemesh["polyloop"] = polyloop
-        surfacemesh["polyloopW"] = [ wingshape.seval(p)  for p in polyloop ]
-        surfacemesh["plurg"] = I1.AbsorbList(p[0]  for p in polyloop), 
-        surfacemesh["plvrg"] = I1.AbsorbList(p[1]  for p in polyloop),
-    else:
-        polylinefoldlinepenmarks[patchname].append(polylineOffset)
-"""
-
 
 
 #

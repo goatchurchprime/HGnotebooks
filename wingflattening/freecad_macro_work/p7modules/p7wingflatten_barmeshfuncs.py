@@ -400,14 +400,14 @@ def singlepointwithinsurfaceoffset(seval, iapolyline, rad, sp, spstep):
     lam = iapolyline.CutposN(nodeOut, nodeIn, None, rad)
     assert 0.0 <= lam <= 1.0, lam
     spmid = Along(lam, nodeOut.sp, nodeIn.sp)
-    nodeMid = WNode(wingshape.seval(spmid[0], spmid[1]), spmid, -1)
+    nodeMid = WNode(seval(spmid[0], spmid[1]), spmid, -1)
     nodeMid.pointzone = barmesh.PointZone(0, rd2, None)
     iapolyline.DistP(nodeMid.pointzone, nodeMid.p)
     return nodeMid.sp
     
 def polylinewithinsurfaceoffset(seval, polyline, rad, spstep):
     polylineW = [ seval(q[0], q[1])  for q in polyline ]
-    iapolyline = ImplicitAreaBallOffsetOfClosedContour(polylineW, polyline, bloopclosed=False, boxwidth=0.01)
+    iapolyline = ImplicitAreaBallOffsetOfClosedContour(polylineW, polyline, bloopclosed=False, boxwidth=10)
     polylineoffset = [ ]
     for sp in polyline:
         polylineoffset.append(singlepointwithinsurfaceoffset(seval, iapolyline, rad, sp, spstep))

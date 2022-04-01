@@ -39,10 +39,12 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-uvpolygons = doc.UVPolygons.OutList
+uvpolygons = doc.UVPolygonsOffsets.OutList
 uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
+uvfoldlines = doc.UVPolygonsFoldlines.OutList
+
 assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
 
@@ -177,8 +179,11 @@ for I in range(len(uvtriangulations)):
 	surfacemesh = striangulations[I]
 	flattenedmesh = sflattened[I]
 	assert uvmesh.Mesh.CountFacets == flattenedmesh.Mesh.CountFacets == surfacemesh.Mesh.CountFacets
+	name = uvmesh.Name[1:]
+	uvfoldlineL = [ [ P2(v.Point.x, v.Point.y)  for v in uvfoldline.Shape.OrderedVertexes ]  for uvfoldline in uvfoldlines  if uvfoldline.Name[1:len(name)+1] == name ]
+	print("Name", name, "with fold lines", len(uvfoldlineL))
 
-	pencilgS = createobjectingroup(doc, pencilg, "App::DocumentObjectGroup", "p%s"%uvmesh.Name[1:])
+	pencilgS = createobjectingroup(doc, pencilg, "App::DocumentObjectGroup", "p%s"%name)
 
 	xpart, uvtranslistCcolumns = generateTransColumns(uvmesh, flattenedmesh)
 
@@ -192,30 +197,28 @@ for I in range(len(uvtriangulations)):
 
 	for spsS in spsFS:
 		if len(spsS) > 2:
-			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(pencilgS.Name[1:], len(pencilgS.OutList)))
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
 			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
 			ws.ViewObject.PointColor = (1.0,0.0,0.0)
 			ws.ViewObject.LineColor = (1.0,0.0,0.0)
-
-	battonlineFS= [ ]
-	for battonuvline in battonuvlines:
-		battonlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in battonuvline ]
-		battonlineFS.extend(sliceupatnones(battonlineF))
-	for spsS in battonlineFS:
-		if len(spsS) > 2:
-			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(pencilgS.Name[1:], len(pencilgS.OutList)))
-			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-			ws.ViewObject.PointColor = (0.5,0.0,0.0)
-			ws.ViewObject.LineColor = (0.5,0.0,0.0)
-
 
 	battendetailsegments = [ ]
 	for sporigin, sptriangle in battonuvdetailpositions:
 		battendetailsegments.extend(projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspacing, vspacing, battendetaillines))
 	for i in range(0, len(battendetailsegments), 2):
 		bdsegs = [ Vector(battendetailsegments[i][0], battendetailsegments[i][1], 1), Vector(battendetailsegments[i+1][0], battendetailsegments[i+1][1], 1) ]
-		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(pencilgS.Name[1:], len(pencilgS.OutList)))
+		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(name, len(pencilgS.OutList)))
 		ws.Shape = Part.makePolygon(bdsegs)
 		ws.ViewObject.PointColor = (0.0,0.0,1.0)
 		ws.ViewObject.LineColor = (0.0,0.0,1.0)
 
+	uvfoldlineLFS= [ ]
+	for uvfoldline in uvfoldlineL:
+		battonlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in uvfoldline ]
+		uvfoldlineLFS.extend(sliceupatnones(battonlineF))
+	for spsS in uvfoldlineLFS:
+		if len(spsS) > 2:
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "l%s_%d"%(name, len(pencilgS.OutList)))
+			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+			ws.ViewObject.PointColor = (0.0,0.8,0.0)
+			ws.ViewObject.LineColor = (0.0,0.8,0.0)
