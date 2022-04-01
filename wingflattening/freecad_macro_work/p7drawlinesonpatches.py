@@ -16,6 +16,7 @@ sys.path.append(os.path.split(__file__)[0])
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingeval import urange, vrange
 from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
+from p7modules.p7wingeval import urange, vrange, seval, leadingedgelengths
 
 doc = App.ActiveDocument
 
@@ -43,8 +44,23 @@ uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
 assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
-
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
+
+# get the batten detail file and set the duplicated positions for the pen cuts
+battendetailfile = os.path.join(os.path.split(__file__)[0], "batten detail TSR.dxf")
+#battendetailfile = "/home/julian/repositories/HGnotebooks/wingflattening/freecad_macro_work/batten detail TSR.dxf"
+
+import ezdxf
+docbattendetail = ezdxf.readfile(battendetailfile)
+dxflines = [ k  for k in docbattendetail.entities  if "-CUT" in k.dxf.layer or "PLOT" in k.dxf.layer ]
+battendetaillines = [ ]
+for line in dxflines:
+	p0, p1 = P2(line.dxf.start.x, line.dxf.start.y), P2(line.dxf.end.x, line.dxf.end.y)
+	battendetaillines.extend([p0, p1])
+dxflinelayers = [ k.dxf.layer  for k in dxflines ]
+uvoffsettobettertriangle = P2(0, 100)
+battonuvdetailpositions = [ (P2(u, vrange[0]), P2(u, vrange[0])+uvoffsettobettertriangle)  for u in leadingedgelengths[1:-1] ]
+
 
 def cp2t(t):
 	return [ P2(t[0][0], t[0][1]), P2(t[1][0], t[1][1]), P2(t[2][0], t[2][1]) ]
@@ -99,13 +115,18 @@ def generateTransColumns(uvmesh, flattenedmesh):
 		uvtranslistCcolumns[xpartA.GetPart(uvtrans["cpt"].u)].append(uvtrans)
 	return xpartA, uvtranslistCcolumns
 
-def projectspbarmeshF(sp, xpart, uvtranslistCcolumns, bFlattenedPatches=True):
+def findcctriangleinmesh(sp, xpart, uvtranslistCcolumns):
 	if not (xpart.lo < sp[0] < xpart.hi):
 		return None
 	ix = xpart.GetPart(sp[0])
 	if len(uvtranslistCcolumns[ix]) == 0:
 		return None
-	cc = min((cc  for cc in uvtranslistCcolumns[ix]), key=lambda X: (X["cpt"] - sp).Len())
+	return min((cc  for cc in uvtranslistCcolumns[ix]), key=lambda X: (X["cpt"] - sp).Len())
+
+def projectspbarmeshF(sp, xpart, uvtranslistCcolumns, bFlattenedPatches=True):
+	cc = findcctriangleinmesh(sp, xpart, uvtranslistCcolumns)
+	if cc is None:
+		return None
 	if abs(cc["cpt"][0] - sp.u) > uspacing or abs(cc["cpt"][1] - sp.v) > vspacing:
 		return None
 	vc = sp - cc["cpt"]
@@ -115,6 +136,36 @@ def projectspbarmeshF(sp, xpart, uvtranslistCcolumns, bFlattenedPatches=True):
 	if bFlattenedPatches:
 		return vcsT + cc["cptT"]
 	return vcs + cc["cpt"]
+
+
+def projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspacing, vspacing, battendetaillines):
+    cc = findcctriangleinmesh(sptriangle, xpart, uvtranslistCcolumns)
+    if cc is None:
+        return [ ]
+    if abs(cc["cpt"][0] - sptriangle.u) > uspacing or abs(cc["cpt"][1] - sptriangle.v) > vspacing:
+        return [ ]
+    vc = sporigin - cc["cpt"]
+    vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
+    vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v # should be same as vc
+    vcsT = cc["vjT"]*vcp.u + cc["vj1T"]*vcp.v
+
+    # use the 6mm expansion on either side of this line to our advantage
+    ccLeft = findcctriangleinmesh(sptriangle-P2(5, 0), xpart, uvtranslistCcolumns)
+    ccRight = findcctriangleinmesh(sptriangle+P2(5, 0), xpart, uvtranslistCcolumns)
+    assert ccLeft != None and ccRight != None, (ccLeft, ccRight)
+    
+    trailingedgevecL = P2.ZNorm(ccLeft["vjT"]*ccLeft["urvec"].u + ccLeft["vj1T"]*ccLeft["urvec"].v)
+    trailingedgevecR = P2.ZNorm(ccRight["vjT"]*ccRight["urvec"].u + ccRight["vj1T"]*ccRight["urvec"].v)
+    #trailingedgevec = P2.ZNorm(cc["vjT"]*cc["urvec"].u + cc["vj1T"]*cc["urvec"].v)
+    trailingedgevec = P2.ZNorm(trailingedgevecL + trailingedgevecR)
+    #print("trailingedge angles ", trailingedgevecL.Arg(), trailingedgevecR.Arg())
+    trailingedgevecPerp = P2.ZNorm(cc["vjT"]*cc["vrvec"].u + cc["vj1T"]*cc["vrvec"].v)
+    #trailingedgevec = P2.CPerp(trailingedgevecPerp)
+    
+    battendetails = [ ]
+    for lsp in battendetaillines:
+        battendetails.append(vcsT + cc["cptT"] + trailingedgevec*lsp.u + trailingedgevecPerp*lsp.v)
+    return battendetails
 
 
 for I in range(len(uvtriangulations)):
@@ -142,4 +193,13 @@ for I in range(len(uvtriangulations)):
 			ws.ViewObject.PointColor = (1.0,0.0,0.0)
 			ws.ViewObject.LineColor = (1.0,0.0,0.0)
 
+	battendetailsegments = [ ]
+	for sporigin, sptriangle in battonuvdetailpositions:
+		battendetailsegments.extend(projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspacing, vspacing, battendetaillines))
+	for i in range(0, len(battendetailsegments), 2):
+		bdsegs = [ Vector(battendetailsegments[i][0], battendetailsegments[i][1], 1), Vector(battendetailsegments[i+1][0], battendetailsegments[i+1][1], 1) ]
+		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(pencilgS.Name[1:], len(pencilgS.OutList)))
+		ws.Shape = Part.makePolygon(bdsegs)
+		ws.ViewObject.PointColor = (0.0,0.0,1.0)
+		ws.ViewObject.LineColor = (0.0,0.0,1.0)
 
