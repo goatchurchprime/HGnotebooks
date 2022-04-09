@@ -31,7 +31,7 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-patchuvpolygons = doc.UVPolygonsOffsets.OutList
+patchuvpolygons = doc.UVPolygons.OutList #THIS LINE WAS EDITTED TO NOT USE OFFSETS
 uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 
 

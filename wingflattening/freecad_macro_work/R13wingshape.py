@@ -34,8 +34,8 @@ def createobjectingroup(doc, group, objtype, objname):
 
 
 groupwires = doc.Group.OutList
-sections = [ [ (v.Point.x, v.Point.z)  for v in groupwire.Shape.OrderedVertexes ]  for groupwire in groupwires ]
-zvals = [ groupwire.Shape.OrderedVertexes[0].Point.y  for groupwire in groupwires ]
+sections = [ [ (-v.Point.y, v.Point.z)  for v in groupwire.Shape.OrderedVertexes ]  for groupwire in groupwires ]
+zvals = [ groupwire.Shape.OrderedVertexes[0].Point.x  for groupwire in groupwires ]
  
 
 def deriveparametizationforallsections(chosensection):
@@ -87,7 +87,7 @@ doc.recompute()
 sections = doc.getObject("SectionGroup").OutList
 
 # now generate the blank sketch object
-cutlinesketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch")
+sketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch")
 
 leadingedgepoints = [ s.Shape.valueAt(0)  for s in sections ]
 leadingedgelengths = [ 0.0 ]
@@ -103,10 +103,24 @@ p01 = Vector(urange[0], vrange[1])
 p10 = Vector(urange[1], vrange[0])
 p11 = Vector(urange[1], vrange[1])
 
-e0x = sketch.addGeometry(Part.LineSegment(p00, p01))
-e1x = sketch.addGeometry(Part.LineSegment(p10, p11))
-ex0 = sketch.addGeometry(Part.LineSegment(p00, p10))
-ex1 = sketch.addGeometry(Part.LineSegment(p01, p11))
-
+e0x = sketch.addGeometry(Part.LineSegment(p00, p01),True)
+e1x = sketch.addGeometry(Part.LineSegment(p10, p11),True)
+ex0 = sketch.addGeometry(Part.LineSegment(p00, p10),True)
+ex1 = sketch.addGeometry(Part.LineSegment(p01, p11),True)
 # These needs to be converted into Construction types.  refer to other code	gsegs = dict((i, x.Geometry)  for i, x in enumerate(cutlinesketch.GeometryFacadeList)  if not x.Construction)
 
+# Generate constraints from matching nodes and horizontal/vertical
+pointindexes = [ ]
+for i, e in enumerate(sketch.Geometry):
+	pointindexes.append((e.StartPoint.x, e.StartPoint.y, e.StartPoint.z, i, 1))
+	pointindexes.append((e.EndPoint.x, e.EndPoint.y, e.EndPoint.z, i, 2))
+	if e.StartPoint.x == e.EndPoint.x:
+		sketch.addConstraint(Sketcher.Constraint("Vertical",i))
+	if e.StartPoint.y == e.EndPoint.y:
+		sketch.addConstraint(Sketcher.Constraint("Horizontal",i))
+pointindexes.sort()
+
+for i in range(len(pointindexes)-1):
+	if pointindexes[i][:3] == pointindexes[i+1][:3]:
+		#print( pointindexes[i][:3])
+		sketch.addConstraint(Sketcher.Constraint("Coincident", pointindexes[i][3], pointindexes[i][4], pointindexes[i+1][3], pointindexes[i+1][4]))
