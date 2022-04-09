@@ -64,7 +64,8 @@ def makesectionsandsplineedges(doc, sg, sections, zvals, sectionparameters):
 		ws = createobjectingroup(doc, sg, "Part::Feature", "section_%d"%(i+1))
 		ws.Shape = secbspline.toShape()
 		ws.Placement = placement
-	
+		secbsplineedges.append(ws)
+	return secbsplineedges
 
 
 # clear present Groups (FC folders)
@@ -74,7 +75,7 @@ sg = getemptyobject(doc, "App::DocumentObjectGroup", "SectionGroup")
 chosenparametrization = deriveparametizationforallsections(sections[5])
 
 # create the sections (as consistently parametrized bsplines) and also return 
-makesectionsandsplineedges(doc, sg, sections, zvals, chosenparametrization)
+sections = makesectionsandsplineedges(doc, sg, sections, zvals, chosenparametrization)
 
 # Loft this series of section curves
 wingloft = getemptyobject(doc, "Part::Feature", "wingloft")
@@ -82,4 +83,30 @@ wingloft.Shape = Part.makeLoft([l.Shape  for l in sg.OutList], False, True)
 
 doc.recompute()
 
-# f = body.Faces[0]; e = f.Edges[0]; e.curveOnSurface(i)
+
+sections = doc.getObject("SectionGroup").OutList
+
+# now generate the blank sketch object
+cutlinesketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch")
+
+leadingedgepoints = [ s.Shape.valueAt(0)  for s in sections ]
+leadingedgelengths = [ 0.0 ]
+for i in range(len(leadingedgepoints)-1):
+	leadingedgelengths.append(leadingedgelengths[-1] + (leadingedgepoints[i+1] - leadingedgepoints[i]).Length)
+uvals = leadingedgelengths
+
+urange = [0, uvals[-1]]
+vrange = [sections[0].Shape.FirstParameter, sections[0].Shape.LastParameter]
+
+p00 = Vector(urange[0], vrange[0])
+p01 = Vector(urange[0], vrange[1])
+p10 = Vector(urange[1], vrange[0])
+p11 = Vector(urange[1], vrange[1])
+
+e0x = sketch.addGeometry(Part.LineSegment(p00, p01))
+e1x = sketch.addGeometry(Part.LineSegment(p10, p11))
+ex0 = sketch.addGeometry(Part.LineSegment(p00, p10))
+ex1 = sketch.addGeometry(Part.LineSegment(p01, p11))
+
+# These needs to be converted into Construction types.  refer to other code	gsegs = dict((i, x.Geometry)  for i, x in enumerate(cutlinesketch.GeometryFacadeList)  if not x.Construction)
+
