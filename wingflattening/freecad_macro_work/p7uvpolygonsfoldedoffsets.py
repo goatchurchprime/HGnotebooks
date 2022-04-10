@@ -32,7 +32,7 @@ def createobjectingroup(doc, group, objtype, objname):
 	return obj
 
 uvpolygons = doc.UVPolygons.OutList
-uvpolygonsoffsets = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygons")
+uvpolygonsoffsets = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsOffsets")
 uvpolygonsfoldlines = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsFoldlines")
 
 from p7modules.p7wingeval import WingEval
