@@ -43,11 +43,14 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-uvpolygons = doc.UVPolygonsOffsets.OutList
+uvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
+print("** using", uvpolygonsGroup.Name)
+uvpolygons = uvpolygonsGroup.OutList
+
 uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
-uvfoldlines = doc.UVPolygonsFoldlines.OutList
+uvfoldlines = doc.UVPolygonsFoldlines.OutList if doc.getObject("UVPolygonsFoldlines") else [ ]
 
 assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
