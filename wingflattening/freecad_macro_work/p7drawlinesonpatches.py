@@ -14,11 +14,15 @@ sys.path.append(os.path.split(__file__)[0])
 
 #from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolyuvvectorstransF
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
-from p7modules.p7wingeval import urange, vrange
-from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
-from p7modules.p7wingeval import urange, vrange, seval, leadingedgelengths
 
 doc = App.ActiveDocument
+
+from p7modules.p7wingeval import WingEval
+wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
+
 
 def removeObjectRecurse(objname):
 	for o in doc.findObjects(Name=objname)[0].OutList:

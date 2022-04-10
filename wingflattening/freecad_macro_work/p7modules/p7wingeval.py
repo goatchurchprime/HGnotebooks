@@ -26,25 +26,30 @@ def paramintconv(u, uvals):
 			j0 = j
 	return j0 + (u-uvals[j0])/(uvals[j1]-uvals[j0])
 
-def seval(u, v):
-	uc = paramintconv(u, uvals)
-	i = max(0, min(len(uvals)-2, int(uc)))
-	m = uc - i
-	p0 = sections[i].Shape.valueAt(v)
-	p1 = sections[i+1].Shape.valueAt(v)
-	return p0*(1-m) + p1*m
 
-# Fetch the sections from the folder and find the parameter ranges
-sections = doc.getObject("SectionGroup").OutList
+class WingEval:
+	def __init__(self, sections):
+		self.sections = sections
 
-leadingedgepoints = [ s.Shape.valueAt(0)  for s in sections ]
-leadingedgelengths = [ 0.0 ]
-for i in range(len(leadingedgepoints)-1):
-	leadingedgelengths.append(leadingedgelengths[-1] + (leadingedgepoints[i+1] - leadingedgepoints[i]).Length)
-uvals = leadingedgelengths
+		self.leadingedgepoints = [ s.Shape.valueAt(0)  for s in self.sections ]
+		self.leadingedgelengths = [ 0.0 ]
+		for i in range(len(self.leadingedgepoints)-1):
+			self.leadingedgelengths.append(self.leadingedgelengths[-1] + (self.leadingedgepoints[i+1] - self.leadingedgepoints[i]).Length)
+		self.uvals = self.leadingedgelengths
 
-urange = [0, uvals[-1]]
-vrange = [sections[0].Shape.FirstParameter, sections[0].Shape.LastParameter]
+		self.urange = [0, self.uvals[-1]]
+		self.vrange = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
 
-print("Ranges", urange, vrange)
+		print("Ranges", self.urange, self.vrange)
+	
+	def seval(self, u, v):
+		uc = paramintconv(u, self.uvals)
+		i = max(0, min(len(self.uvals)-2, int(uc)))
+		m = uc - i
+		p0 = self.sections[i].Shape.valueAt(v)
+		p1 = self.sections[i+1].Shape.valueAt(v)
+		return p0*(1-m) + p1*m
+
+# wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+
 

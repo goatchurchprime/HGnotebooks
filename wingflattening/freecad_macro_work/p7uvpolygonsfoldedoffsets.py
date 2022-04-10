@@ -35,7 +35,11 @@ uvpolygons = doc.UVPolygonsOffsets.OutList
 uvpolygonsoffsets = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsOffsets")
 uvpolygonsfoldlines = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsFoldlines")
 
-from p7modules.p7wingeval import urange, vrange, seval, leadingedgelengths
+from p7modules.p7wingeval import WingEval
+wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingflatten_barmeshfuncs import polyloopvedgeseqpolyline, polylinewithinsurfaceoffset
 

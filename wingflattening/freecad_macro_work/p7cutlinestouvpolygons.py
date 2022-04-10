@@ -13,11 +13,15 @@ from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
 
-from p7modules.p7wingeval import urange, vrange, seval
-print("Rangesss", urange, vrange)
-
 doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
+
+from p7modules.p7wingeval import WingEval
+wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+print("Rangesss", urange, vrange)
+
 
 def removeObjectRecurse(objname):
 	for o in doc.findObjects(Name=objname)[0].OutList:
@@ -140,7 +144,6 @@ def getnameofpolygon(points):
 	closestname = min(((avgpt - Vector(p[0]*1000, p[1]*1000)).Length, name)  for name, p in patchnamelookups.items())[1]
 	return closestname
 
-# clear present Groups (FC folders).  (Doesn't work reliably)
 clw = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygons")
 
 # find the sets of nodes from the coincident constraints

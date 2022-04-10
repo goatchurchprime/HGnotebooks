@@ -12,8 +12,13 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
-from p7modules.p7wingeval import urange, vrange, seval, leadingedgepoints
 
+doc = App.ActiveDocument
+
+from p7modules.p7wingeval import WingEval
+wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+urange, vrange, seval, leadingedgepoints = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgepoints
+uvals, sections = wingeval.uvals, wingeval.sections
 
 print("Rangess", urange, vrange)
 from p7modules.p7wingeval import sections, leadingedgepoints, uvals
@@ -38,7 +43,6 @@ def sevalG(u, v):
 
 
 
-doc = App.ActiveDocument
 print(sevalG(1,1))
 
 	

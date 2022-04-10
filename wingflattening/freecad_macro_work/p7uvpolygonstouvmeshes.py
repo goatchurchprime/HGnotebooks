@@ -31,7 +31,9 @@ def createobjectingroup(doc, group, objtype, objname):
 	group.addObject(obj)
 	return obj
 
-patchuvpolygons = doc.UVPolygons.OutList #THIS LINE WAS EDITTED TO NOT USE OFFSETS
+patchuvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
+print("** using", patchuvpolygonsGroup.Name)
+patchuvpolygons = patchuvpolygonsGroup.OutList 
 uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 
 
@@ -41,7 +43,12 @@ uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
 from p7modules.barmesh import barmesh
 from p7modules.p7wingflatten_barmeshfuncs import ImplicitAreaBallOffsetOfClosedContour, WNode
-from p7modules.p7wingeval import urange, vrange, seval, leadingedgelengths
+
+from p7modules.p7wingeval import WingEval
+wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingflatten_barmeshfuncs import MakeRectBarmeshForWingParametrization, subloopsequence
 from p7modules.barmesh.barmeshslicer import BarMeshSlicer
