@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # Macro to make project7wing as list of wires and single bspline surface
-
+sys.path.append(os.path.split(__file__)[0])
 import FreeCAD as App
 import Draft, Part, Mesh
 import DraftGeomUtils
 import math, os, csv
 from FreeCAD import Vector, Rotation
+from p7modules.p7wingeval import WingEval
 
 doc = App.ActiveDocument
 
@@ -30,7 +31,7 @@ def createobjectingroup(doc, group, objtype, objname):
 	return obj
 
 
-from p7modules.p7wingeval import WingEval
+
 wingeval = WingEval(doc.getObject("SectionGroup").OutList)
 urange, vrange, seval, leadingedgepoints = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgepoints
 uvals, sections = wingeval.uvals, wingeval.sections
