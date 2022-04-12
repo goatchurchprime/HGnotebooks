@@ -20,6 +20,9 @@ from p7modules.p7wingeval import WingEval
 wingeval = WingEval(doc.getObject("SectionGroup").OutList)
 urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
 
+R13type = doc.getObject("Group")
+print("R13 type offsets" if R13type else "P7 wing offsets")
+
 print("Rangesss", urange, vrange)
 
 
@@ -139,6 +142,10 @@ patchnamelookups = {
 	'TSM2':(1.266, -0.913),
 	'TSM3':(3.394, -0.827),
 	'TSR':(4.082, -1.073) }
+	
+if R13type:
+	print("Still waiting for a patchname lookup table for R13")
+
 def getnameofpolygon(points):
 	avgpt = sum(points, Vector())*(1.0/len(points))
 	closestname = min(((avgpt - Vector(p[0]*1000, p[1]*1000)).Length, name)  for name, p in patchnamelookups.items())[1]

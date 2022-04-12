@@ -62,7 +62,8 @@ from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolytria
 #
 
 radoffset = 6
-uspacing, vspacing = 20, 20
+uspacing, vspacing = 20, 10
+
 rd2 = max(uspacing, vspacing, radoffset*2) + 10
 
 battonuvlines = [ ]

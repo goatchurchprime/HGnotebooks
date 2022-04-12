@@ -279,9 +279,9 @@ class BarMeshSlicer:
                 assert bar.nodeback.pointzone.v is not None
                 lam = 1 - self.tgf.CutposN(bar.nodefore, bar.nodeback, None, self.rd)
             else:
-                assert bar.nodefore.pointzone.v is not None
+                assert bar.nodefore.pointzone.v is not None, (bar.nodeback.pointzone.izone, bar.nodefore.pointzone.izone, lam, (bar.nodeback.p, bar.nodefore.p), (bar.nodeback.sp, bar.nodefore.sp), (bar.nodeback.pointzone.r, bar.nodefore.pointzone.r))
                 lam = self.tgf.CutposN(bar.nodeback, bar.nodefore, None, self.rd)
-            assert -0.001 <= lam <= 1.001, lam
+            assert -0.001 <= lam <= 1.001, (lam, (bar.nodeback.p, bar.nodefore.p), (bar.nodeback.sp, bar.nodefore.sp), (bar.nodeback.pointzone.r, bar.nodefore.pointzone.r))
             lambars.append((lam, bar))
         self.cbtime += time.process_time() - ctime1
         
