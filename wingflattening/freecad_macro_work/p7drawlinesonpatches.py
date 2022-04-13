@@ -51,6 +51,8 @@ uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
 uvfoldlines = doc.UVPolygonsFoldlines.OutList if doc.getObject("UVPolygonsFoldlines") else [ ]
+UVLSsewline	= [ P2(v.Point.x, v.Point.y)  for v in doc.UVLSsewline.Shape.OrderedVertexes ]  if doc.getObject("UVLSsewline")  else None 
+
 
 assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
@@ -181,6 +183,11 @@ def projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspaci
     return battendetails
 
 
+
+
+#
+# main loop across the different patches here
+#
 for I in range(len(uvtriangulations)):
 	uvmesh = uvtriangulations[I]
 	surfacemesh = striangulations[I]
@@ -218,6 +225,16 @@ for I in range(len(uvtriangulations)):
 		ws.Shape = Part.makePolygon(bdsegs)
 		ws.ViewObject.PointColor = (0.0,0.0,1.0)
 		ws.ViewObject.LineColor = (0.0,0.0,1.0)
+
+	if UVLSsewline:
+		UVLSsewlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in UVLSsewline ]
+		for spsS in sliceupatnones(UVLSsewlineF):
+			if len(spsS) > 2:
+				ws = createobjectingroup(doc, pencilgS, "Part::Feature", "e%s_%d"%(name, len(pencilgS.OutList)))
+				ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+				ws.ViewObject.PointColor = (1.0,0.0,1.0)
+				ws.ViewObject.LineColor = (1.0,0.0,1.0)
+		
 
 	uvfoldlineLFS= [ ]
 	for uvfoldline in uvfoldlineL:
