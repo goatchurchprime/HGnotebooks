@@ -19,6 +19,9 @@ when the whole shape is offset by 6mm they are at 12mm and 24mm to allow the fab
 and sewn.  The outputs are UVPolygonOffsets and UVPolygonsFoldlines (though if they don't exist, UVPolygons 
 will be used by in a subsequent stage)
 
+R13lowertrailingedgesewline.py - Creates UVLWsewline for where the lower surface meets the upper surface 
+in UV space. 
+
 p7uvpolygonstouvmeshes.py - offsets by 6mm and triangulates each polygon in UV space into UVTriangulations
 
 p7uvmeshestosurfaces.py - projects each triangulated mesh in UV space into the wing surface 
