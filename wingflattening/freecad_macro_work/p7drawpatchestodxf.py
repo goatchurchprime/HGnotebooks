@@ -12,6 +12,7 @@ from FreeCAD import Vector, Rotation
 import ezdxf
 
 sys.path.append(os.path.split(__file__)[0])
+from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
 
 doc = App.ActiveDocument
 
