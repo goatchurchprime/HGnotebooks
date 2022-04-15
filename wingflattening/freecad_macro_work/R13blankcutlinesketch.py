@@ -4,8 +4,10 @@ sys.path.append(os.path.split(__file__)[0])
 import FreeCAD as App
 import Draft, Part, Mesh
 import DraftGeomUtils
-import math, os, csv
+import math, os, csv, sys
 from FreeCAD import Vector, Rotation
+
+sys.path.append(os.path.split(__file__)[0])
 from p7modules.p7wingeval import WingEval
 
 doc = App.ActiveDocument
@@ -29,7 +31,6 @@ def createobjectingroup(doc, group, objtype, objname):
 	obj.adjustRelativeLinks(group)
 	group.addObject(obj)
 	return obj
-
 
 
 wingeval = WingEval(doc.getObject("SectionGroup").OutList)
@@ -64,3 +65,25 @@ sketch.addConstraint(Sketcher.Constraint('DistanceY', e0x, 1, vrange[0]))
 sketch.addConstraint(Sketcher.Constraint('DistanceX', e1x, 2, urange[1])) 
 sketch.addConstraint(Sketcher.Constraint('DistanceY', e1x, 2, vrange[1])) 
 
+
+# Make the wing outline
+import numpy
+vsamplesforfindingLE = numpy.arange(-200, 200, 1.0)
+xvals = [ seval(u, 0.0).x  for u in uvals ]
+leadingedgesY = [ max(seval(u, v).y  for v in vsamplesforfindingLE)  for u in uvals ]
+trailingedgesUpperY = [ seval(u, vrange[0]).y  for u in uvals ]
+trailingedgesLowerY = [ seval(u, vrange[1]).y  for u in uvals ]
+
+def planwingoutlinesketch(sketchname, xvals, yplusedges, yminusedges):
+	Psketch = getemptyobject(doc, "Sketcher::SketchObject", sketchname)
+	plusEdges = [ Psketch.addGeometry(Part.LineSegment(Vector(xvals[i], yplusedges[i]), Vector(xvals[i+1], yplusedges[i+1])), True)  for i in range(len(xvals)-1) ]
+	minusEdges = [ Psketch.addGeometry(Part.LineSegment(Vector(xvals[i], yminusedges[i]), Vector(xvals[i+1], yminusedges[i+1])), True)  for i in range(len(xvals)-1) ]
+	leftedge = Psketch.addGeometry(Part.LineSegment(Vector(xvals[0], yplusedges[0]), Vector(xvals[0], yminusedges[0])), True)
+	rightedge = Psketch.addGeometry(Part.LineSegment(Vector(xvals[-1], yplusedges[-1]), Vector(xvals[-1], yminusedges[-1])), True)
+	# we could easily connect everything up, but this might make it easy to miss if you've moved one by accident
+	# locating all by points with position constraints adds too much clutter
+	
+planwingoutlinesketch("precutupper", xvals, leadingedgesY, trailingedgesUpperY)
+planwingoutlinesketch("precutlower", xvals, leadingedgesY, trailingedgesLowerY)
+planwingoutlinesketch("postpenupper", xvals, leadingedgesY, trailingedgesUpperY)
+planwingoutlinesketch("postpenlower", xvals, leadingedgesY, trailingedgesLowerY)

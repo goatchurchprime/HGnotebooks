@@ -8,7 +8,9 @@ R13wingshape.py - Creates SectionGroup of bsplines from linearized shapes in Gro
 Group node is used to identify that scripts are running against the R13 wingeval
 
 R13blankcutlinesketch.py - Constructs cutlinesketch with a dimensioned construction line rectangle 
-for use in defining the cuts in the fabric in UV space
+for use in defining the cuts in the fabric in UV space.  Also creates sketches precutupper and precutlower
+for projecting non-construction lines back into cutlinesketch (eg for batwing outlines), 
+and postcutupper and postcutlower for projecting penmarks. 
 
 p7cutlinestouvpolygons.py - Creates UVPolygons containing polygons of each of the areas that the 
 cutlinessketch divides into.  Points need to be joined with the Coincident constraint to be 
