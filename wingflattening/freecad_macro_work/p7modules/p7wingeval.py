@@ -8,8 +8,27 @@ import math, os, csv
 import numpy
 from FreeCAD import Vector, Rotation
 
-doc = App.ActiveDocument
+
+def removeObjectRecurse(doc, objname):
+	for o in doc.findObjects(Name=objname)[0].OutList:
+		removeObjectRecurse(o.Name)
+	doc.removeObject(objname)
 	
+def getemptyobject(doc, objtype, objname):
+	if doc.findObjects(Name=objname):
+		removeObjectRecurse(doc, objname)
+		doc.recompute()
+	return doc.addObject(objtype, objname)
+
+def createobjectingroup(doc, group, objtype, objname):
+	if group == None:
+		return getemptyobject(doc, objtype, objname)
+	obj = doc.addObject(objtype, objname)
+	obj.adjustRelativeLinks(group)
+	group.addObject(obj)
+	return obj
+
+
 # If you are getting the following error:
 #  <class 'ReferenceError'>: Cannot access attribute 'Shape' of deleted object
 # You might need to restart FreeCAD since it seems capable of leaving submodule of 
@@ -28,6 +47,7 @@ def paramintconv(u, uvals):
 
 
 class WingEval:
+	# wingeval = WingEval(doc.getObject("SectionGroup").OutList)
 	def __init__(self, sections):
 		self.sections = sections
 
@@ -39,6 +59,11 @@ class WingEval:
 
 		self.urange = [0, self.uvals[-1]]
 		self.vrange = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
+		self.vvalsLE = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
+		
+		self.xvals = [ section.Shape.valueAt(0.0).x  for section in self.sections ]  # sections assumed to lie in constant x planes
+		vsamplesforfindingLE = numpy.arange(-200, 200, 0.5)
+		self.leadingedgesV = [ max(vsamplesforfindingLE, key=lambda v:section.Shape.valueAt(v).y)  for section in self.sections ]
 
 		print("Ranges", self.urange, self.vrange)
 	
@@ -50,6 +75,28 @@ class WingEval:
 		p1 = self.sections[i+1].Shape.valueAt(v)
 		return p0*(1-m) + p1*m
 
-# wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+	def inverse_seval(self, x, y, bupperface, tol=0.001):
+		xc = paramintconv(x, self.xvals)
+		i = max(0, min(len(self.xvals)-2, int(xc)))
+		m = xc - i
+		u = self.uvals[i]*(1-m) + self.uvals[i+1]*m
+		vlo, vhi = (self.vrange[0] if bupperface else self.vrange[1]), self.leadingedgesV[0]
 
-
+		plo0 = self.sections[i].Shape.valueAt(vlo)
+		plo1 = self.sections[i+1].Shape.valueAt(vlo)
+		plo = plo0*(1-m) + plo1*m
+		phi0 = self.sections[i].Shape.valueAt(vhi)
+		phi1 = self.sections[i+1].Shape.valueAt(vhi)
+		phi = phi0*(1-m) + phi1*m
+		if not (plo.y - tol*5 <= y <= phi.y + tol*5):
+			print("** Warning %f,%f out of range as not %f < %f < %f" % (x, y, plo.y, y, phi.y))
+		while abs(phi.y - plo.y) > tol:
+			vmid = (vlo + vhi)/2
+			pmid0 = self.sections[i].Shape.valueAt(vmid)
+			pmid1 = self.sections[i+1].Shape.valueAt(vmid)
+			pmid = pmid0*(1-m) + pmid1*m
+			if pmid.y < y:
+				vlo, plo0, plo1, plo = vmid, pmid0, pmid1, pmid
+			else:
+				vhi, phi0, phi1, phi = vmid, pmid0, pmid1, pmid
+		return u, vlo

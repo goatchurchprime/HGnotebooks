@@ -12,6 +12,9 @@ for use in defining the cuts in the fabric in UV space.  Also creates sketches p
 for projecting non-construction lines back into cutlinesketch (eg for batwing outlines), 
 and postcutupper and postcutlower for projecting penmarks. 
 
+R13precutstocutlinesketch.py - Does the mapping of non-construction lines from the XY-based precutupper and 
+precutlower sketches back into the UV-based cutlinesketch as the basis for further drawings (the batwing trailing edges).
+
 p7cutlinestouvpolygons.py - Creates UVPolygons containing polygons of each of the areas that the 
 cutlinessketch divides into.  Points need to be joined with the Coincident constraint to be 
 considered a continuation of the polygon.  Polygons are given names according to a lookup table.
