@@ -12,11 +12,11 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
+from p7modules.p7wingeval import WingEval
 
 doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
 
-from p7modules.p7wingeval import WingEval
 wingeval = WingEval(doc.getObject("SectionGroup").OutList)
 urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
 
@@ -123,9 +123,17 @@ def orientationclockwise(points):
 	vBack = ptblBack - ptbl
 	#print (ptblBack, ptbl, ptblFore, jbl, jblp1, jblm1, points[jblp2], points[jblm2])
 	return (math.atan2(vFore.x, vFore.y) < math.atan2(vBack.x, vBack.y))
-
-
-patchnamelookups = {   
+	
+if R13type:
+	patchnamelookups = {
+	'US':(2.5,-0.5),
+	'LEI1':(1.1,0),
+	'LEI2':(3,0),
+	'LEI3':(4.5,0),
+	'TSF':(2.5,0.3),
+	'TSR':(2.5,0.6)}
+else:
+	patchnamelookups = {   
 	'US1':(0.851, 0.865),
 	'US2':(3.907, 0.864),
 	'LEI1':(0.207, 0.106),
@@ -142,9 +150,6 @@ patchnamelookups = {
 	'TSM2':(1.266, -0.913),
 	'TSM3':(3.394, -0.827),
 	'TSR':(4.082, -1.073) }
-	
-if R13type:
-	print("Still waiting for a patchname lookup table for R13")
 
 def getnameofpolygon(points):
 	avgpt = sum(points, Vector())*(1.0/len(points))
