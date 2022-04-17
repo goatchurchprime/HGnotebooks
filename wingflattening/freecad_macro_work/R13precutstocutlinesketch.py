@@ -46,3 +46,21 @@ def projectprecut(cutlinesketch, precutsketch, bupperface):
 
 projectprecut(cutlinesketch, doc.precutupper, True)
 projectprecut(cutlinesketch, doc.precutlower, False)
+
+"""
+cs = doc.precutlower
+cs = doc.Sketch
+gfs = cs.GeometryFacadeList
+geoindexes = { }
+if 1:
+	for i in range(len(gfs)):
+		g = gfs[i]
+		if not g.Construction:
+			geoindexes[i] = len(geoindexes)
+	for c in cs.Constraints:
+		if c.First in geoindexes and c.Second in geoindexes:
+			print(c)
+		else:
+			print(".", c)
+"""
+		

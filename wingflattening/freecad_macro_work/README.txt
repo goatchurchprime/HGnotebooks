@@ -33,6 +33,10 @@ p7uvmeshestosurfaces.py - projects each triangulated mesh in UV space into the w
 by evaluating the function WingEval.SEval().  These go into STriangulations.  Then flatmesh.FaceUnwrapper()
 is called on each surface and the flattened areas are put into SFlattened
 
+p7flattenpatchestojson_forviewing.py - outputs STriangulations and SFlattened lists into the file ../p7test.json
+which can be previewed using the Jupyter notebook p7flattenpatches_viewer to see the distortion and flatness 
+of the flattened patches
+
 p7drawlinesonpatches.py - projects the outlines of all the adjacent patches into SPencil groups of each patch, 
 as well as projecting the "batten detail TSR.dxf" onto the trailing edge of each section
 
