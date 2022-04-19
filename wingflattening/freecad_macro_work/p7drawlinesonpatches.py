@@ -18,30 +18,13 @@ from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 doc = App.ActiveDocument
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+from p7modules.p7wingeval import getemptyobject, createobjectingroup
+
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+urange, vrange, seval, uvals = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.uvals
 
 from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
-
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	if group == None:
-		return getemptyobject(doc, objtype, objname)
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
 
 uvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
 print("** using", uvpolygonsGroup.Name)
@@ -70,7 +53,7 @@ for line in dxflines:
 	battendetaillines.extend([p0, p1])
 dxflinelayers = [ k.dxf.layer  for k in dxflines ]
 uvoffsettobettertriangle = P2(0, 100)
-battonuvdetailpositions = [ (P2(u, vrange[0]), P2(u, vrange[0])+uvoffsettobettertriangle)  for u in leadingedgelengths[1:-1] ]
+battonuvdetailpositions = [ (P2(u, vrange[0]), P2(u, vrange[0])+uvoffsettobettertriangle)  for u in uvals[1:-1] ]
 
 
 def cp2t(t):
@@ -107,7 +90,7 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 
 uspacing, vspacing = 20, 20
 battonuvlines = [ ]
-for u in leadingedgelengths[1:-1]:
+for u in uvals[1:-1]:
 	battonuvlines.append([P2(u, v)  for v in numpy.arange(vrange[0]-vspacing, vrange[1]+vspacing, vspacing)])
 
 def generateTransColumns(uvmesh, flattenedmesh):

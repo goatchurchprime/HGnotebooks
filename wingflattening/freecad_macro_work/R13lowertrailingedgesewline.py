@@ -17,8 +17,9 @@ from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 doc = App.ActiveDocument
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
 
 uspacing, vspacing = 20, 10
 xpart = Partition1(urange[0], urange[1], int((urange[1]-urange[0])/uspacing + 2))

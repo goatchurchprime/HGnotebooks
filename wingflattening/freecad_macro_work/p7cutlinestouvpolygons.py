@@ -17,10 +17,11 @@ from p7modules.p7wingeval import WingEval
 doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
 
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
-
 R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+
+urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
+
 print("R13 type offsets" if R13type else "P7 wing offsets")
 
 print("Rangesss", urange, vrange)

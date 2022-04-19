@@ -25,7 +25,8 @@ if nnonconstructionlines != 0:
 	print("Creating junk sketch for testing instead")
 	cutlinesketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch_Junk")
 
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
 
 legsampleleng = 3.0
 def projectprecut(cutlinesketch, precutsketch, bupperface):

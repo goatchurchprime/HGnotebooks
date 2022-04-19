@@ -40,8 +40,11 @@ flg = getemptyobject(doc, "App::DocumentObjectGroup", "SFlattened")
 #sys.path.append("/home/julian/repositories/HGnotebooks/wingflattening/freecad_macro_work")
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+
+urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
 
 def transformalignfpts(uvpts, fpts, patchname):
 	uvpts = [ p.Vector for p in t.Mesh.Points ]

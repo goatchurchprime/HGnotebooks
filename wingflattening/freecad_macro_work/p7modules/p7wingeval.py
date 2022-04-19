@@ -43,35 +43,68 @@ def paramintconv(u, uvals):
 
 
 class WingEval:
-	# wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-	def __init__(self, sections):
+	# R13type = doc.getObject("Group")
+	# wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+	def __init__(self, sections, R13type):
 		self.sections = sections
-
-		self.leadingedgepoints = [ s.Shape.valueAt(0)  for s in self.sections ]
-		self.leadingedgelengths = [ 0.0 ]
-		for i in range(len(self.leadingedgepoints)-1):
-			self.leadingedgelengths.append(self.leadingedgelengths[-1] + (self.leadingedgepoints[i+1] - self.leadingedgepoints[i]).Length)
-		self.uvals = self.leadingedgelengths
-
-		self.urange = [0, self.uvals[-1]]
-		self.vrange = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
-		self.vvalsLE = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
-		
+		self.R13type = R13type
 		self.xvals = [ section.Shape.valueAt(0.0).x  for section in self.sections ]  # sections assumed to lie in constant x planes
-		vsamplesforfindingLE = numpy.arange(-200, 200, 0.5)
-		self.leadingedgesV = [ max(vsamplesforfindingLE, key=lambda v:section.Shape.valueAt(v).y)  for section in self.sections ]
+		
+		# main difference is that we treat the source curves as linearized sections by length
+		# rather than bsplines with a parametrization, since the latter is buggy and introduces self-folding
+		if self.R13type:
+			self.uvals = leadingedgelengths
+			self.urange = [0, self.uvals[-1]]
+			self.Isection = 5
+			self.sectionpoints = [ ]
+			for section in self.sections:
+				self.sectionpoints = [ v.Point  for v in section.Shape.OrderedVertexes ]
+			
+			self.Ichordlengths = [ 0 ]
+			for p0, p1 in zip(self.sectionpoints[Isection], self.sectionpoints[Isection][1:]):
+				self.Ichordlengths.append(self.Ichordlengths[-1] + (p0-p1).Length)
+			self.vrange = [ self.Ichordlengths[0], self.Ichordlengths[-1] ]
+			
+			self.leadingedgesV = [ ]
+			for spoints in self.sectionpoints:
+				j = max(range(len(spoints)), key=lambda jj:spoints[jj].y)
+				self.leadingedgesV.append(self.Ichordlengths[j])
+
+		else:
+			leadingedgepoints = [ s.Shape.valueAt(0)  for s in self.sections ]
+			leadingedgelengths = [ 0.0 ]
+			for i in range(len(leadingedgepoints)-1):
+				leadingedgelengths.append(leadingedgelengths[-1] + (leadingedgepoints[i+1] - leadingedgepoints[i]).Length)
+			self.uvals = leadingedgelengths
+
+			self.urange = [0, self.uvals[-1]]
+			self.vrange = [self.sections[0].Shape.FirstParameter, self.sections[0].Shape.LastParameter]
+			
+			vsamplesforfindingLE = numpy.arange(-200, 200, 0.5)
+			self.leadingedgesV = [ max(vsamplesforfindingLE, key=lambda v:section.Shape.valueAt(v).y)  for section in self.sections ]
 
 		print("Ranges", self.urange, self.vrange)
 	
+	def sueval(self, i, v):
+		vc = paramintconv(v, self.Ichordlengths)
+		j = max(0, min(len(self.Ichordlengths)-2, int(vc)))
+		m = vc - j
+		return self.sectionpoints[i][j]*(1-m) + self.sectionpoints[i][j+1]*m
+
 	def seval(self, u, v):
 		uc = paramintconv(u, self.uvals)
 		i = max(0, min(len(self.uvals)-2, int(uc)))
 		m = uc - i
-		p0 = self.sections[i].Shape.valueAt(v)
-		p1 = self.sections[i+1].Shape.valueAt(v)
+		if self.R13type:
+			p0 = self.sueval(i, v)
+			p1 = self.sueval(i+1, v)
+		else:
+			p0 = self.sections[i].Shape.valueAt(v)
+			p1 = self.sections[i+1].Shape.valueAt(v)
 		return p0*(1-m) + p1*m
 
 	def inverse_seval(self, x, y, bupperface, tol=0.001):
+		assert not R13type
 		xc = paramintconv(x, self.xvals)
 		i = max(0, min(len(self.xvals)-2, int(xc)))
 		m = xc - i

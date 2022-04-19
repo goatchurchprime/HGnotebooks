@@ -45,8 +45,11 @@ from p7modules.barmesh import barmesh
 from p7modules.p7wingflatten_barmeshfuncs import ImplicitAreaBallOffsetOfClosedContour, WNode
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+
+urange, vrange, seval, uvals = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.uvals
 
 
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
@@ -67,7 +70,7 @@ uspacing, vspacing = 20, 10
 rd2 = max(uspacing, vspacing, radoffset*2) + 10
 
 battonuvlines = [ ]
-for u in leadingedgelengths[1:-1]:
+for u in uvals[1:-1]:
 	battonuvlines.append([P2(u, v)  for v in numpy.arange(vrange[0]-vspacing, vrange[1]+vspacing, vspacing)])
 
 urgA, vrgA = I1(*urange).Inflate(60), I1(*vrange).Inflate(110)
