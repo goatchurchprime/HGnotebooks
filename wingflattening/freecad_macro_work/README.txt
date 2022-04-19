@@ -4,8 +4,8 @@ into dxf of flat pieces of fabric with pen marks.
 
 p7wingshape.py - Creates SectionGroup of bsplines from shapes defined in P7-211221-XYZ geometry.csv
 
-R13wingshape.py - Creates SectionGroup of bsplines from linearized shapes in Group.  Presence of 
-Group node is used to identify that scripts are running against the R13 wingeval
+R13wingshape.py - *Doesn't* create SectionGroup of bsplines from linearized shapes in Group.  Instead makes a lofted 
+surface from Group linearized sections against which we can calculate the R13 wingeval
 
 R13blankcutlinesketch.py - Constructs cutlinesketch with a dimensioned construction line rectangle 
 for use in defining the cuts in the fabric in UV space.  Also creates sketches precutupper and precutlower

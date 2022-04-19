@@ -11,7 +11,7 @@ from FreeCAD import Vector, Rotation
 
 def removeObjectRecurse(doc, objname):
 	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
+		removeObjectRecurse(doc, o.Name)
 	doc.removeObject(objname)
 	
 def getemptyobject(doc, objtype, objname):
@@ -29,10 +29,6 @@ def createobjectingroup(doc, group, objtype, objname):
 	return obj
 
 
-# If you are getting the following error:
-#  <class 'ReferenceError'>: Cannot access attribute 'Shape' of deleted object
-# You might need to restart FreeCAD since it seems capable of leaving submodule of 
-# a macro holding on to pointers of some previous objects from a closed file
 
 # parametric definition functions for the wingshape
 def paramintconv(u, uvals):
