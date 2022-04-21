@@ -89,8 +89,6 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 	area = abs(P2.Dot(fptsT[1] - fptsT[0], P2.APerp(fptsT[2] - fptsT[0]))*0.5)
 	uvarea = abs(P2.Dot(uvpts[1] - uvpts[0], P2.APerp(uvpts[2] - uvpts[0]))*0.5)
 
-	if area > 485:
-		print("aaa", fptsT)
 	return { "cpt":cpt, "cptT":cptT, "urvec":urvec, "vrvec":vrvec, 
 			 "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T, "area":area, "uvarea":uvarea }
 
