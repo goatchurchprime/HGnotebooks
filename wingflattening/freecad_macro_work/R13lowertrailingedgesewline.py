@@ -3,6 +3,8 @@
 # Macro to generate the pencil lines onto each of the patches 
 # based on the other outlines and on the batton patch design
 
+# TO ABOLISH
+
 import FreeCAD as App
 import Draft, Part, Mesh
 import DraftGeomUtils

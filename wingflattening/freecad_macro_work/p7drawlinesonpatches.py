@@ -34,11 +34,13 @@ uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
 uvfoldlines = doc.UVPolygonsFoldlines.OutList if doc.getObject("UVPolygonsFoldlines") else [ ]
-UVLSsewline	= [ P2(v.Point.x, v.Point.y)  for v in doc.UVLSsewline.Shape.OrderedVertexes ]  if doc.getObject("UVLSsewline")  else None 
+postpenupper = doc.getObject("postpenupper") 
+postpenlower = doc.getObject("postpenlower") 
 
 
 assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
+pencilT = getemptyobject(doc, "App::DocumentObjectGroup", "TPencil")
 
 # get the batten detail file and set the duplicated positions for the pen cuts
 battendetailfile = os.path.join(os.path.split(__file__)[0], "batten detail TSR.dxf")
@@ -165,8 +167,28 @@ def projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspaci
         battendetails.append(vcsT + cc["cptT"] + trailingedgevec*lsp.u + trailingedgevecPerp*lsp.v)
     return battendetails
 
+legsampleleng = 3.0
+def projectpostpen(postpensketch, bupperface):
+	resuv = [ ]
+	for g in postpensketch.GeometryFacadeList:
+		if not g.Construction:
+			gg = g.Geometry
+			num = int(math.ceil(gg.length()/legsampleleng) + 1)
+			params = numpy.linspace(gg.FirstParameter, gg.LastParameter, num)
+			qs = [ ]
+			for a in params:
+				p = gg.value(a)
+				q = wingeval.inverse_seval(p.x, p.y, bupperface, tol=0.001)
+				qs.append(P2(q[0], q[1]))
+			if len(qs) > 2:
+				resuv.append(qs)
+	return resuv
 
-
+postpenuvs = projectpostpen(postpenupper, True) + projectpostpen(postpenlower, False)
+for ip, ppuvs in enumerate(postpenuvs):
+	ws = createobjectingroup(doc, pencilT, "Part::Feature", "t%d"%ip)
+	for ip, ppuvs in enumerate(postpenuvs):
+		ws.Shape = Part.makePolygon([seval(p.u, p.v)  for p in ppuvs])
 
 #
 # main loop across the different patches here
@@ -193,11 +215,10 @@ for I in range(len(uvtriangulations)):
 		spsFS.extend(sliceupatnones(spsJF))
 
 	for spsS in spsFS:
-		if len(spsS) > 2:
-			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
-			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-			ws.ViewObject.PointColor = (1.0,0.0,0.0)
-			ws.ViewObject.LineColor = (1.0,0.0,0.0)
+		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
+		ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+		ws.ViewObject.PointColor = (1.0,0.0,0.0)
+		ws.ViewObject.LineColor = (1.0,0.0,0.0)
 
 	battendetailsegments = [ ]
 	for sporigin, sptriangle in battonuvdetailpositions:
@@ -209,14 +230,13 @@ for I in range(len(uvtriangulations)):
 		ws.ViewObject.PointColor = (0.0,0.0,1.0)
 		ws.ViewObject.LineColor = (0.0,0.0,1.0)
 
-	if UVLSsewline:
-		UVLSsewlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in UVLSsewline ]
-		for spsS in sliceupatnones(UVLSsewlineF):
-			if len(spsS) > 2:
-				ws = createobjectingroup(doc, pencilgS, "Part::Feature", "e%s_%d"%(name, len(pencilgS.OutList)))
-				ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-				ws.ViewObject.PointColor = (1.0,0.0,1.0)
-				ws.ViewObject.LineColor = (1.0,0.0,1.0)
+	for ip, ppuvs in enumerate(postpenuvs):
+		ppuvsF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in ppuvs ]
+		for iip, spsS in enumerate(sliceupatnones(ppuvsF)):
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "e%s_%d_%d"%(name, ip, iip))
+			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+			ws.ViewObject.PointColor = (1.0,0.0,1.0)
+			ws.ViewObject.LineColor = (1.0,0.0,1.0)
 		
 
 	uvfoldlineLFS= [ ]

@@ -326,7 +326,7 @@ def sliceupatnones(seq):
             res[-1].append(s)
     if not res[-1]:
         res.pop()
-    return res
+    return [ s  for s in res  if len(s) > 2 ]
 
 
 def projectspbarmeshF(sp, xpart, cpolycolumns, uspacing, vspacing, bFlattenedPatches=True):
