@@ -21,7 +21,8 @@ zvals = [ groupwire.Shape.OrderedVertexes[0].Point.x  for groupwire in groupwire
 if True:
 	wingloft = getemptyobject(doc, "Part::Feature", "wingloft")
 	wingloft.Shape = Part.makeLoft([l.Shape  for l in doc.Group.OutList], False, True)
-	removeObjectRecurse(doc, "SectionGroup")
+	if doc.findObjects(Name="SectionGroup"):
+		removeObjectRecurse(doc, "SectionGroup")
 
 else:
 	# 
