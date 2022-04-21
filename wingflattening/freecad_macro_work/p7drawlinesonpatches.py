@@ -187,8 +187,7 @@ def projectpostpen(postpensketch, bupperface):
 postpenuvs = projectpostpen(postpenupper, True) + projectpostpen(postpenlower, False)
 for ip, ppuvs in enumerate(postpenuvs):
 	ws = createobjectingroup(doc, pencilT, "Part::Feature", "t%d"%ip)
-	for ip, ppuvs in enumerate(postpenuvs):
-		ws.Shape = Part.makePolygon([seval(p.u, p.v)  for p in ppuvs])
+	ws.Shape = Part.makePolygon([seval(p.u, p.v)  for p in ppuvs])
 
 #
 # main loop across the different patches here
