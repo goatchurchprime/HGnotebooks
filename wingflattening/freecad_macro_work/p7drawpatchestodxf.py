@@ -12,7 +12,8 @@ from FreeCAD import Vector, Rotation
 import ezdxf
 
 sys.path.append(os.path.split(__file__)[0])
-from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
+
+from p7modules.p7wingflatten_barmeshfuncs import MeshBoundary
 
 doc = App.ActiveDocument
 
@@ -38,36 +39,6 @@ aamadrawlayer = dxc.layers.new("8", {"color":4})
 aamaintcutlayer = dxc.layers.new("11", {"color":3})
 patchshapelayer = dxc.layers.new("21", {"color":21})
 
-def MeshBoundary(mesh):
-	#fpts, tris = fmesh.Mesh.Topology
-	tbarmesh = TriangleBarMesh()
-	trpts = [ sum(f.Points, ())  for f in fmesh.Mesh.Facets ]
-	tbarmesh.BuildTriangleBarmesh(trpts)
-	assert len(tbarmesh.nodes) == fmesh.Mesh.CountPoints
-	assert len(tbarmesh.bars) == fmesh.Mesh.CountEdges
-
-	tbarcycles = set()
-	for bar in tbarmesh.bars:
-		if bar.barforeright is None:
-			tbarcycles.add((bar, bar.nodeback))
-		elif bar.barbackleft is None:
-			tbarcycles.add((bar, bar.nodefore))
-
-	cpolys = [ ]
-	while len(tbarcycles):
-		cbar, cnode = tbarcycles.pop()
-		ccpoly = [ ]
-		ccbar, ccnode = cbar, cnode
-		while True:
-			ccpoly.append(ccnode.p)
-			while (lccbar:=ccbar.GetForeRightBL(ccbar.nodefore == ccnode)) is not None:
-				ccbar = lccbar
-			ccnode = ccbar.GetNodeFore(ccbar.nodeback == ccnode)
-			if ccbar == cbar and ccnode == cnode:
-				break
-			tbarcycles.remove((ccbar, ccnode))
-		cpolys.append(ccpoly)
-	return cpolys
 
 for fmesh in sflattened:
 	meshcentre = fmesh.Mesh.BoundBox.Center
@@ -76,7 +47,7 @@ for fmesh in sflattened:
 	block = dxc.blocks.new(name=blockname)
 	blockcentre = ezdxf.math.Vec3(meshcentre.x, meshcentre.y, 0)
 
-	cpolys = MeshBoundary(fmesh.Mesh)
+	cpolys = MeshBoundary(fmesh)
 	for cpoly in cpolys:
 		patchboundary = [ ezdxf.math.Vec3(p[0], p[1], 0)-blockcentre  for p in cpoly ]
 		patchboundary.append(patchboundary[0])

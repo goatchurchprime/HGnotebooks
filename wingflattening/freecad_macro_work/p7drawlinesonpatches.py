@@ -25,10 +25,7 @@ wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutLis
 urange, vrange, seval, uvals = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.uvals
 
 from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
-
-uvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
-print("** using", uvpolygonsGroup.Name)
-uvpolygons = uvpolygonsGroup.OutList
+from p7modules.p7wingflatten_barmeshfuncs import MeshBoundary
 
 uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
@@ -38,9 +35,11 @@ postpenupper = doc.getObject("postpenupper")
 postpenlower = doc.getObject("postpenlower") 
 
 
-assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
+assert len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
 pencilT = getemptyobject(doc, "App::DocumentObjectGroup", "TPencil")
+
+uvtriangulationboundaries = [ MeshBoundary(uvtriangulation)  for uvtriangulation in uvtriangulations ] 
 
 # get the batten detail file and set the duplicated positions for the pen cuts
 battendetailfile = None if R13type else os.path.join(os.path.split(__file__)[0], "batten detail TSR.dxf")
@@ -65,6 +64,11 @@ def cp2t(t):
 def cpolyuvvectorstransC(uvpts, fptsT):
 	assert len(uvpts) == len(fptsT)
 	n = len(uvpts)
+	area = abs(P2.Dot(fptsT[1] - fptsT[0], P2.APerp(fptsT[2] - fptsT[0]))*0.5)
+	uvarea = abs(P2.Dot(uvpts[1] - uvpts[0], P2.APerp(uvpts[2] - uvpts[0]))*0.5)
+	if uvarea == 0:
+		return { "uvarea":0.0 }
+
 	cpt = sum(uvpts, P2(0,0))*(1.0/n)
 	cptT = sum(fptsT, P2(0,0))*(1.0/n)
 	jp = max((abs(P2.Dot(uvpts[j] - cpt, P2.APerp(uvpts[(j+1)%n] - cpt))), j)  for j in range(n))
@@ -72,6 +76,8 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 	vj1 = uvpts[(jp[1]+1)%n] - cpt
 
 	urvec = P2(vj1.v, -vj.v)
+	#if P2.Dot(urvec, P2(vj.u, vj1.u)) == 0:
+	#	print(jp[1], uvpts, uvarea)
 	urvec = urvec*(1.0/P2.Dot(urvec, P2(vj.u, vj1.u)))
 	vrvec = P2(vj1.u, -vj.u)
 	vrvec = vrvec*(1.0/P2.Dot(vrvec, P2(vj.v, vj1.v)))
@@ -86,8 +92,6 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 	# vc = p - cc["cpt"]
 	#vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
 	#vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v ->  vc
-	area = abs(P2.Dot(fptsT[1] - fptsT[0], P2.APerp(fptsT[2] - fptsT[0]))*0.5)
-	uvarea = abs(P2.Dot(uvpts[1] - uvpts[0], P2.APerp(uvpts[2] - uvpts[0]))*0.5)
 
 	return { "cpt":cpt, "cptT":cptT, "urvec":urvec, "vrvec":vrvec, 
 			 "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T, "area":area, "uvarea":uvarea }
@@ -104,7 +108,7 @@ for u in uvals[1:-1]:
 def generateTransColumns(uvmesh, flattenedmesh):
 	uvtranslist = [ cpolyuvvectorstransC(cp2t(a.Points), cp2t(b.Points))  for a, b in zip(uvmesh.Mesh.Facets, flattenedmesh.Mesh.Facets) ]
 	uvareacutoff = max(t["uvarea"]  for t in uvtranslist)*0.2
-	uvtranslistC = [t  for t in uvtranslist  if t["uvarea"]  > uvareacutoff]
+	uvtranslistC = [t  for t in uvtranslist  if t["uvarea"] > uvareacutoff]
 	print("discarding", len(uvtranslist)-len(uvtranslistC), "small triangles out of", len(uvtranslist))
 
 	# recreate the original partition of the urange which matches the zoning of the areas already there
@@ -220,9 +224,11 @@ for I in range(len(uvtriangulations)):
 	for J in range(len(uvtriangulations)):
 		if J == I:
 			continue
-		spsJ = [ P2(v.Point.x, v.Point.y)  for v in uvpolygons[J].Shape.OrderedVertexes ]
-		spsJF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in spsJ ]
-		spsFS.extend(sliceupatnones(spsJF))
+		cpolys = uvtriangulationboundaries[J]
+		for cpoly in cpolys:
+			spsJ = [ P2(p.x, p.y)  for p in cpoly ]
+			spsJF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in spsJ ]
+			spsFS.extend(sliceupatnones(spsJF))
 
 	for spsS in spsFS:
 		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))

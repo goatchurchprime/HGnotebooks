@@ -63,6 +63,7 @@ from p7modules.barmesh.implicitareaballoffset import DistPZ, DistLamPZ
 from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
 from p7modules.barmesh.basicgeo import I1, Partition1, P3, P2, Along
 
+
 class ImplicitAreaBallOffsetOfClosedContour:
     def __init__(self, polyloopW, polyloop, bloopclosed=True, boxwidth=-1):
         assert len(polyloopW) == len(polyloop)
@@ -413,3 +414,34 @@ def polylinewithinsurfaceoffset(seval, polyline, rad, spstep):
         polylineoffset.append(singlepointwithinsurfaceoffset(seval, iapolyline, rad, sp, spstep))
     return polylineoffset
 
+
+def MeshBoundary(fmesh):
+	#fpts, tris = fmesh.Mesh.Topology
+	tbarmesh = TriangleBarMesh()
+	trpts = [ sum(f.Points, ())  for f in fmesh.Mesh.Facets ]
+	tbarmesh.BuildTriangleBarmesh(trpts)
+	assert len(tbarmesh.nodes) == fmesh.Mesh.CountPoints
+	assert len(tbarmesh.bars) == fmesh.Mesh.CountEdges
+
+	tbarcycles = set()
+	for bar in tbarmesh.bars:
+		if bar.barforeright is None:
+			tbarcycles.add((bar, bar.nodeback))
+		elif bar.barbackleft is None:
+			tbarcycles.add((bar, bar.nodefore))
+
+	cpolys = [ ]
+	while len(tbarcycles):
+		cbar, cnode = tbarcycles.pop()
+		ccpoly = [ ]
+		ccbar, ccnode = cbar, cnode
+		while True:
+			ccpoly.append(ccnode.p)
+			while (lccbar:=ccbar.GetForeRightBL(ccbar.nodefore == ccnode)) is not None:
+				ccbar = lccbar
+			ccnode = ccbar.GetNodeFore(ccbar.nodeback == ccnode)
+			if ccbar == cbar and ccnode == cnode:
+				break
+			tbarcycles.remove((ccbar, ccnode))
+		cpolys.append(ccpoly)
+	return cpolys
