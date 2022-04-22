@@ -11,25 +11,10 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
+from p7modules.p7wingeval import WingEval
+from p7modules.p7wingeval import getemptyobject, createobjectingroup, removeObjectRecurse
 
 doc = App.ActiveDocument
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
 
 patchuvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
 print("** using", patchuvpolygonsGroup.Name)
@@ -44,7 +29,6 @@ from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriang
 from p7modules.barmesh import barmesh
 from p7modules.p7wingflatten_barmeshfuncs import ImplicitAreaBallOffsetOfClosedContour, WNode
 
-from p7modules.p7wingeval import WingEval
 
 R13type = doc.getObject("Group")
 wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
