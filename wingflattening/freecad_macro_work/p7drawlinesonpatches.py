@@ -190,8 +190,7 @@ def projectpostpen(postpensketch, bupperface):
 				resuv.append(qs)
 	return resuv
 
-#postpenuvs = projectpostpen(postpenupper, True) + projectpostpen(postpenlower, False)
-postpenuvs = projectpostpen(postpenlower, False)
+postpenuvs = projectpostpen(postpenupper, True) + projectpostpen(postpenlower, False)
 for ip, ppuvs in enumerate(postpenuvs):
 	ws = createobjectingroup(doc, pencilT, "Part::Feature", "t%d"%ip)
 	ws.Shape = Part.makePolygon([seval(p.u, p.v)  for p in ppuvs])
