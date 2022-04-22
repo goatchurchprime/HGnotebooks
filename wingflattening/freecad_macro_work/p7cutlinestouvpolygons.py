@@ -13,6 +13,7 @@ from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
 from p7modules.p7wingeval import WingEval
+from p7modules.p7wingeval import getemptyobject, createobjectingroup, removeObjectRecurse
 
 doc = App.ActiveDocument
 cutlinesketch = doc.cutlinesketch
@@ -25,24 +26,6 @@ urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
 print("R13 type offsets" if R13type else "P7 wing offsets")
 
 print("Rangesss", urange, vrange)
-
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
 
 # makes sets of one non-construction edge end point which are then merged according to each coincident constraint 
 def extractcoincidentnodes(cutlinesketch):
@@ -127,12 +110,10 @@ def orientationclockwise(points):
 	
 if R13type:
 	patchnamelookups = {
-	'US':(2.5,0.5),
-	'LEI1':(1.1,0),
-	'LEI2':(3,0),
-	'LEI3':(4.5,0),
-	'TSF':(2.5,-0.3),
-	'TSR':(2.5,-0.6)}
+	'TS':(2.1, 0.5),
+	'LE':(2.2, 1.1),
+	'US':(2.2, 1.7)
+	}
 else:
 	patchnamelookups = {   
 	'US1':(0.851, 0.865),
