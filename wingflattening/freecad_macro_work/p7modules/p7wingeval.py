@@ -68,7 +68,6 @@ class WingEval:
 			for spoints in self.sectionpoints:
 				j = max(range(len(spoints)), key=lambda jj:spoints[jj].y)
 				self.leadingedgesV.append(self.Ichordlengths[j])
-				print(j)
 				
 		else:
 			leadingedgepoints = [ s.Shape.valueAt(0)  for s in self.sections ]

@@ -11,27 +11,35 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
+# Do this if running by pasting into Python window
+#sys.path.append("/home/julian/repositories/HGnotebooks/wingflattening/freecad_macro_work")
 from p7modules.p7wingeval import WingEval
 from p7modules.p7wingeval import getemptyobject, createobjectingroup, removeObjectRecurse
 
 doc = App.ActiveDocument
+
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+
 
 patchuvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
 print("** using", patchuvpolygonsGroup.Name)
 patchuvpolygons = patchuvpolygonsGroup.OutList 
 uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 
+# Program in the offsets for each of the polygons (allows same polygon to get 2 offsets)
+patchuvpolygonMakerList = [ ]
+for patchuvpolygon in patchuvpolygons:
+	polygonname = patchuvpolygon.Name[1:]
+	patchuvpolygonMakerList.append([polygonname, patchuvpolygon, 6.0 ]) 
+	if R13type and polygonname == "LE":
+		patchuvpolygonMakerList.append(["LEM", patchuvpolygon, 12.5 ]) 
 
-# Do this if running by pasting into Python window
-#sys.path.append("/home/julian/repositories/HGnotebooks/wingflattening/freecad_macro_work")
 
 from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
 from p7modules.barmesh import barmesh
 from p7modules.p7wingflatten_barmeshfuncs import ImplicitAreaBallOffsetOfClosedContour, WNode
 
-
-R13type = doc.getObject("Group")
-wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
 
 urange, vrange, seval, uvals = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.uvals
 
@@ -48,16 +56,9 @@ from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolytria
 # and product a contour in UV space that would project to the offset 3D surface
 #
 
-radoffset = 6
 uspacing, vspacing = 20, 10
 
-rd2 = max(uspacing, vspacing, radoffset*2) + 10
-
-battonuvlines = [ ]
-for u in uvals[1:-1]:
-	battonuvlines.append([P2(u, v)  for v in numpy.arange(vrange[0]-vspacing, vrange[1]+vspacing, vspacing)])
-
-urgA, vrgA = I1(*urange).Inflate(60), I1(*vrange).Inflate(110)
+urgA, vrgA = I1(*urange).Inflate(90), I1(*vrange).Inflate(110)
 xpartA = Partition1(urgA.lo, urgA.hi, int(urgA.Leng()/uspacing + 2))
 ypartA = Partition1(vrgA.lo, vrgA.hi, int(vrgA.Leng()/vspacing + 2))
 
@@ -75,13 +76,16 @@ def sevalP3(u, v):
 	p = seval(u, v)
 	return P3(p.x, p.y, p.z)
 
-for i in range(0, len(patchuvpolygons)):
-	s = patchuvpolygons[i]
-	print("\nStarting", i, s.Name)
+# Main loop through the polygons
+for i in range(0, len(patchuvpolygonMakerList)):
+	patchname, s, radoffset = patchuvpolygonMakerList[i]
+	rd2 = max(uspacing, vspacing, radoffset*2) + 10
+
+	print("\nStarting", i, patchname, radoffset)
 	polyloop = [ P2(v.Point.x, v.Point.y)  for v in s.Shape.OrderedVertexes ]
 	polyloopW = [ sevalP3(p[0], p[1])  for p in polyloop ]
-	urg = I1.AbsorbList(p[0]  for p in polyloop).Inflate(50)
-	vrg = I1.AbsorbList(p[1]  for p in polyloop).Inflate(50)
+	urg = I1.AbsorbList(p[0]  for p in polyloop).Inflate(60)
+	vrg = I1.AbsorbList(p[1]  for p in polyloop).Inflate(80)
 	xpart = SubPartition(xpartA, urg.lo, urg.hi)
 	ypart = SubPartition(ypartA, vrg.lo, vrg.hi)
 
@@ -105,7 +109,7 @@ for i in range(0, len(patchuvpolygons)):
 	ptsFV = [ Vector(*p)  for p in ptsF ]
 	facets = [ [ ptsFV[i0], ptsFV[i1], ptsFV[i2] ]  for i0, i1, i2 in tris ]
 
-	mesh = createobjectingroup(doc, uvtg, "Mesh::Feature", "m%s"%s.Name[1:])
+	mesh = createobjectingroup(doc, uvtg, "Mesh::Feature", "m%s"%patchname)
 	mesh.Mesh = Mesh.Mesh(facets)
 	mesh.ViewObject.Lighting = "Two side"
 	mesh.ViewObject.DisplayMode = "Wireframe"
