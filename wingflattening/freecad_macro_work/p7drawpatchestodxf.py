@@ -23,7 +23,9 @@ sflattened = doc.SFlattened.OutList
 spencil = doc.SPencil.OutList
 thinnedlines = getemptyobject(doc, "App::DocumentObjectGroup", "ThinnedLines")
 
-import ezdxf, os
+import ezdxf, ezdxf.math, os
+
+ezdxfvec3 = ezdxf.math.Vec3 if hasattr(ezdxf.math, "Vec3") else ezdxf.math.Vector
 
 AAMA_CUT = "1"
 AAMA_DRAW = "8"
@@ -80,11 +82,11 @@ for fmesh in sflattened:
 	print("Working on", blockname)
 	spencild = doc.getObject("p"+blockname)
 	block = dxc.blocks.new(name=blockname)
-	blockcentre = ezdxf.math.Vector(meshcentre.x, meshcentre.y, 0)
+	blockcentre = ezdxfvec3(meshcentre.x, meshcentre.y, 0)
 
 	cpolys = MeshBoundary(fmesh)
 	for cpoly in cpolys:
-		patchboundary = [ ezdxf.math.Vector(p[0], p[1], 0)-blockcentre  for p in cpoly ]
+		patchboundary = [ ezdxfvec3(p[0], p[1], 0)-blockcentre  for p in cpoly ]
 		patchboundary.append(patchboundary[0])   # Make the closed shape closed
 		thinnedpatchboundary = ThinDXFpoly(patchboundary)
 		ShowInThinnedLines(thinnedpatchboundary, blockcentre, "%s_thin"%fmesh.Name)
@@ -92,7 +94,7 @@ for fmesh in sflattened:
 
 	print("Now doing pencilcuts", len(spencild.OutList))
 	for w in spencild.OutList:
-		pencilline = [ ezdxf.math.Vector(v.Point.x, v.Point.y, 0)-blockcentre  for v in w.Shape.OrderedVertexes ]
+		pencilline = [ ezdxfvec3(v.Point.x, v.Point.y, 0)-blockcentre  for v in w.Shape.OrderedVertexes ]
 		thinnedpencilline = ThinDXFpoly(pencilline)
 		ShowInThinnedLines(thinnedpencilline, blockcentre, "%s_thin"%w.Name)
 		block.add_polyline2d(thinnedpencilline, dxfattribs={ "layer":aamadrawlayer.dxf.name })
