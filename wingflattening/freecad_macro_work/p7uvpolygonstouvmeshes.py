@@ -31,9 +31,10 @@ uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 patchuvpolygonMakerList = [ ]
 for patchuvpolygon in patchuvpolygons:
 	polygonname = patchuvpolygon.Name[1:]
-	patchuvpolygonMakerList.append([polygonname, patchuvpolygon, 6.0 ]) 
 	if R13type and polygonname == "LE":
 		patchuvpolygonMakerList.append(["LEM", patchuvpolygon, 12.5 ]) 
+	else:
+		patchuvpolygonMakerList.append([polygonname, patchuvpolygon, 6.25 ]) 
 
 
 from p7modules.barmesh.tribarmes import TriangleBarMesh, TriangleBar, MakeTriangleBoxing
