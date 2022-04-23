@@ -61,8 +61,6 @@ def transformalignfpts(uvpts, fpts, patchname):
 	if patchname == "TSM3":
 		uvcentre -= Vector(1000, -300, 0)
 	if patchname == "US":
-		uvcentre += Vector(0, 800, 0)
-	if patchname == "LE":
 		uvcentre += Vector(0, 500, 0)
 		
 	def transF(p):

@@ -33,7 +33,7 @@ sflattened = doc.SFlattened.OutList
 uvfoldlines = doc.UVPolygonsFoldlines.OutList if doc.getObject("UVPolygonsFoldlines") else [ ]
 postpenupper = doc.getObject("postpenupper") 
 postpenlower = doc.getObject("postpenlower") 
-
+uvpolygonsdict = dict((uvpolygon.Name[1:], uvpolygon)  for uvpolygon in doc.UVPolygons.OutList)
 
 assert len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
@@ -228,8 +228,8 @@ for I in range(len(uvtriangulations)):
 		for cpoly in cpolys:
 			spsJ = [ P2(p.x, p.y)  for p in cpoly ]
 			spsJF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in spsJ ]
+			spsJF.append(spsJF[0])
 			spsFS.extend(sliceupatnones(spsJF))
-
 	for spsS in spsFS:
 		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
 		ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
@@ -267,4 +267,15 @@ for I in range(len(uvtriangulations)):
 		ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
 		ws.ViewObject.PointColor = (0.0,0.8,0.0)
 		ws.ViewObject.LineColor = (0.0,0.8,0.0)
+		
+	# this is the LE edge original shape to use as a template to cut
+	if R13type and name == "LEM":
+		originalpoly = [ P2(v.Point.x, v.Point.y)  for v in uvpolygonsdict["LE"].Shape.OrderedVertexes ]
+		originalpolyF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in originalpoly ]
+		for spsS in sliceupatnones(originalpolyF):
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "cut%s_%d"%(name, len(pencilgS.OutList)))
+			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+			ws.ViewObject.PointColor = (0.8,0.8,0.0)
+			ws.ViewObject.LineColor = (0.8,0.8,0.0)
+		
 
