@@ -11,27 +11,11 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
+from p7modules.p7wingeval import getemptyobject, createobjectingroup, removeObjectRecurse
 
 doc = App.ActiveDocument
 R13type = doc.getObject("Group")
 print("R13 type offsets" if R13type else "P7 wing offsets")
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
 
 uvpolygons = doc.UVPolygons.OutList
 uvpolygonsoffsets = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsOffsets")
@@ -47,6 +31,16 @@ from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingflatten_barmeshfuncs import polyloopvedgeseqpolyline, polylinewithinsurfaceoffset
 
 surfacemeshdict = dict((uvpoly.Name[1:], [ P2(v.Point.x, v.Point.y)  for v in uvpoly.Shape.OrderedVertexes ])  for uvpoly in uvpolygons)
+
+#####scratch work
+#uvpoly = doc.UVPolygons.OutList[0]
+#polyloop = [ P2(v.Point.x, v.Point.y)  for v in uvpoly.Shape.OrderedVertexes ]
+#[ i  for i in range(len(polyloop))  if polyloop[i].v == 0 ], len(polyloop)
+##for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
+#irot = -10
+#Dpolyloop = polyloop[irot:] + polyloop[:irot]
+#[ i  for i in range(len(Dpolyloop))  if Dpolyloop[i].v == 0 ], len(Dpolyloop)
+#####
 
 legsampleleng = 3.0
 
@@ -83,9 +77,7 @@ offsetstretchcomponents = [ ("US1", -10, vrange[1], 6, P2(0, 2), True),
 
 
 if R13type:
-	offsetstretchcomponents = [ ("LEI4", 10, vrange[1], 6, P2(0, 2), True), 
-								("US2", 10, vrange[1], 6, P2(0, 2), True), 
-								("LEI5", 10, vrange[0], 6, P2(0, -2), True), 
+	offsetstretchcomponents = [ ("TS", -10, vrange[0], 6, P2(0, -2), True), 
 							  ]
 
 
@@ -95,28 +87,36 @@ def sevalP3(u, v):
 	return P3(p.x, p.y, p.z)
 
 def polyloopvedgeseqpolylineW(polyloop, vedge):
-    vedgeseq = [ [ ] ]
-    for i in range(len(polyloop)):
-        if abs(polyloop[i].v - vedge) < 1e-5:
-            if vedgeseq[-1]:
-                vedgeseq[-1][-1] = i
-            else:
-                vedgeseq[-1] = [i, i]
-        elif vedgeseq[-1]:
-            vedgeseq.append([])
-    if not vedgeseq[-1]:
-        vedgeseq.pop()
-    assert len(vedgeseq) == 1, vedgeseq
-    i0, i1 = vedgeseq[0]
-    assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop), "try a different value for irot")
-    return i0, i1
+	vedgeseq = [ [ ] ]
+	for i in range(len(polyloop)):
+		if abs(polyloop[i].v - vedge) < 1e-5:
+			if vedgeseq[-1]:
+				vedgeseq[-1][-1] = i
+			else:
+				vedgeseq[-1] = [i, i]
+		elif vedgeseq[-1]:
+			vedgeseq.append([])
+	if not vedgeseq[-1]:
+		vedgeseq.pop()
+	assert len(vedgeseq) == 1, vedgeseq
+	i0, i1 = vedgeseq[0]
+	assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop), "try a different value for irot")
+	return i0, i1
+
+
+def polyloopvedgeseqpolylineBatwing(polyloop, vedge):
+	inxs = [ i  for i in range(len(polyloop))  if polyloop[i].v == vedge ]
+	i0, i1 = min(inxs), max(inxs)
+	assert (max(abs(polyloop[i].v - vedge) for i in range(i0, i1+1)) < 100), ("point edge too far from edge between", i0, i1, len(polyloop), polyloop[i0], polyloop[i1])
+	return i0, i1
 
 
 polylinefoldlinepenmarks = { }
 for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
 	polyloop = surfacemeshdict[patchname]
 	polyloop = polyloop[irot:] + polyloop[:irot]
-	i0, i1 = polyloopvedgeseqpolylineW(polyloop, vedge)
+
+	i0, i1 = polyloopvedgeseqpolylineBatwing(polyloop, vedge) if R13type else polyloopvedgeseqpolylineW(polyloop, vedge)
 	print(patchname, i0, i1, rad)
 
 	polyline = polyloop[i0:i1+1]
