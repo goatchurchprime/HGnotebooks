@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # Module to read the sections from SectionGroup and define the seval(u, v) parametric function on this surface
 
-import FreeCAD as App
-import Draft, Part, Mesh
+import Draft, Part, Mesh, Sketcher
 import DraftGeomUtils
 import math, os, csv
 import numpy
@@ -39,6 +38,37 @@ def paramintconv(u, uvals):
 			j0 = j
 	return j0 + (u-uvals[j0])/(uvals[j1]-uvals[j0])
 
+def uvrectangle(urange, vrange, sketchname,doc):
+	sketch = getemptyobject(doc, "Sketcher::SketchObject", sketchname)
+
+	p00 = Vector(urange[0], vrange[0])
+	p01 = Vector(urange[0], vrange[1])
+	p10 = Vector(urange[1], vrange[0])
+	p11 = Vector(urange[1], vrange[1])
+
+	e0x = sketch.addGeometry(Part.LineSegment(p00, p01), True)
+	e1x = sketch.addGeometry(Part.LineSegment(p10, p11), True)
+	ex0 = sketch.addGeometry(Part.LineSegment(p00, p10), True)
+	ex1 = sketch.addGeometry(Part.LineSegment(p01, p11), True)
+
+	sketch.addConstraint(Sketcher.Constraint("Vertical", e0x))
+	sketch.addConstraint(Sketcher.Constraint("Vertical", e1x))
+	sketch.addConstraint(Sketcher.Constraint("Horizontal", ex0))
+	sketch.addConstraint(Sketcher.Constraint("Horizontal", ex1))
+
+	sketch.addConstraint(Sketcher.Constraint("Coincident", e0x, 1, ex0, 1))
+	sketch.addConstraint(Sketcher.Constraint("Coincident", e0x, 2, ex1, 1))
+	sketch.addConstraint(Sketcher.Constraint("Coincident", ex0, 2, e1x, 1))
+	sketch.addConstraint(Sketcher.Constraint("Coincident", e1x, 2, ex1, 2))
+
+	sketch.addConstraint(Sketcher.Constraint('DistanceX', e0x, 1, urange[0])) 
+	sketch.addConstraint(Sketcher.Constraint('DistanceY', e0x, 1, vrange[0])) 
+	sketch.addConstraint(Sketcher.Constraint('DistanceX', e1x, 2, urange[1])) 
+	sketch.addConstraint(Sketcher.Constraint('DistanceY', e1x, 2, vrange[1])) 
+
+	for i in range(len(sketch.Constraints)):
+		sketch.setVirtualSpace(i, True)
+	return sketch
 
 class WingEval:
 	# R13type = doc.getObject("Group")
