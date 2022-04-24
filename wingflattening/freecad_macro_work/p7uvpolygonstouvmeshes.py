@@ -31,8 +31,8 @@ uvtg = getemptyobject(doc, "App::DocumentObjectGroup", "UVTriangulations")
 patchuvpolygonMakerList = [ ]
 for patchuvpolygon in patchuvpolygons:
 	polygonname = patchuvpolygon.Name[1:]
-	if R13type and polygonname == "LE":
-		patchuvpolygonMakerList.append(["LEM", patchuvpolygon, 12.5 ]) 
+	if R13type and polygonname == "LE1" or polygonname == "LE2" or polygonname == "LE3":
+		patchuvpolygonMakerList.append([polygonname+"M", patchuvpolygon, 12.5 ]) 
 	else:
 		patchuvpolygonMakerList.append([polygonname, patchuvpolygon, 6.25 ]) 
 
@@ -59,7 +59,7 @@ from p7modules.p7wingflatten_barmeshfuncs import findallnodesandpolys, cpolytria
 
 uspacing, vspacing = 20, 10
 
-urgA, vrgA = I1(*urange).Inflate(90), I1(*vrange).Inflate(110)
+urgA, vrgA = I1(*urange).Inflate(90), I1(*vrange).Inflate(180)
 xpartA = Partition1(urgA.lo, urgA.hi, int(urgA.Leng()/uspacing + 2))
 ypartA = Partition1(vrgA.lo, vrgA.hi, int(vrgA.Leng()/vspacing + 2))
 

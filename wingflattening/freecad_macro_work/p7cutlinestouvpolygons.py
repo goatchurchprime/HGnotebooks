@@ -110,8 +110,11 @@ def orientationclockwise(points):
 	
 if R13type:
 	patchnamelookups = {
-	'TS':(2.1, 0.5),
-	'LE':(2.2, 1.1),
+	'TSR':(2.1, 0.5),
+	'TSF':(2.1,1),
+	'LE1':(1, 1.2),
+	'LE2':(2.8, 1.2),
+	'LE3':(3.9, 1.2),
 	'US':(2.2, 1.7)
 	}
 else:

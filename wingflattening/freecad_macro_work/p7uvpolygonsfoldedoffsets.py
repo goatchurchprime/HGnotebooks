@@ -77,7 +77,7 @@ offsetstretchcomponents = [ ("US1", -10, vrange[1], 6, P2(0, 2), True),
 
 
 if R13type:
-	offsetstretchcomponents = [ ("TS", -10, vrange[0], 6, P2(0, -2), True), 
+	offsetstretchcomponents = [ ("TSR", -10, vrange[0], 12.5, P2(0, -2), True), 
 							  ]
 
 
