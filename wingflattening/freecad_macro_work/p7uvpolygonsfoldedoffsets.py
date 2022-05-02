@@ -70,8 +70,19 @@ def splicereplacedpolylineintoloop(polyloop, i0, i1, polyline, legsampleleng):
 offsetstretchcomponentsRG = [ ]
 if R13type:
 	offsetstretchcomponentsRG = [ 
-		{ "patchname":"TSR", "rad":18.5, "spstep":P2(0,-2), "edgestartpt":P2(0,0), "edgeendpt":P2(4417.58,0), "spliceloop":True }, 
-		{ "patchname":"TSR", "rad":6.5, "spstep":P2(2,0), "edgestartpt":P2(4417.58,-59.044231), "edgeendpt":P2(4417.58,835), "spliceloop":True } 
+		{ "patchname":"TSR", "rad":25-6.25, "spstep":P2(0,-2), "edgestartpt":P2(0,0), "edgeendpt":P2(4417.58,0), "spliceloop":True }, #Trailing edge fold
+		{ "patchname":"TSR", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,-59.84), "edgeendpt":P2(4417.58,835), "spliceloop":True }, #Tip fold
+		{ "patchname":"TSF", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,835), "edgeendpt":P2(4417.58,946.55), "spliceloop":True }, #Tip fold
+		{ "patchname":"LE3", "rad":25-6.25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,946.55), "edgeendpt":P2(4417.58,1471.55), "spliceloop":True }, #Tip fold (account for LE panel being made bigger)
+		{ "patchname":"US", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,1471.55), "edgeendpt":P2(4417.58,2286.55), "spliceloop":True }, #Tip fold
+		{ "patchname":"US", "rad":12.5-6.25, "spstep":P2(0,2), "edgestartpt":P2(4436.26,2286.55), "edgeendpt":P2(83.67,2286.55), "spliceloop":True }, #TE fold
+		#{ "patchname":"LE1", "rad":12.5-6.25-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,1148.68), "edgeendpt":P2(0,1031.09), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSF", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,1031.09), "edgeendpt":P2(0,750), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSR", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,750), "edgeendpt":P2(0,384.56), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSR", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,342.82), "edgeendpt":P2(0,-9.85), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSF", "rad":12.5-6.25, "spstep":P2(0,2), "edgestartpt":P2(4436.1,946.55), "edgeendpt":P2(-5.5,1031.09), "spliceloop":True }, #Mylar pocket overlap
+		{ "patchname":"US", "rad":12.5-6.25, "spstep":P2(0,-2), "edgestartpt":P2(6.25,1381.34), "edgeendpt":P2(4436.2,1471.55), "spliceloop":True }, #Mylar pocket overlap
+		
 	]
 else:
 	# double folds are at 12-6 and 24-6 before the offset by 6 (all in mm!)

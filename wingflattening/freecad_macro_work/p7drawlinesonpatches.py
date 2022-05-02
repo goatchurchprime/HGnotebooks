@@ -269,8 +269,8 @@ for I in range(len(uvtriangulations)):
 		ws.ViewObject.LineColor = (0.0,0.8,0.0)
 		
 	# this is the LE edge original shape to use as a template to cut
-	if R13type and name == "LEM":
-		originalpoly = [ P2(v.Point.x, v.Point.y)  for v in uvpolygonsdict["LE"].Shape.OrderedVertexes ]
+	if R13type and (name == "LE1M" or name == "LE2M" or name == "LE3M"):
+		originalpoly = [ P2(v.Point.x, v.Point.y)  for v in uvpolygonsdict[name[:-1]].Shape.OrderedVertexes ]
 		originalpolyF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in originalpoly ]
 		for spsS in sliceupatnones(originalpolyF):
 			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "cut%s_%d"%(name, len(pencilgS.OutList)))
