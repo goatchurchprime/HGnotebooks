@@ -11,41 +11,36 @@ import numpy
 from FreeCAD import Vector, Rotation
 
 sys.path.append(os.path.split(__file__)[0])
+from p7modules.p7wingeval import getemptyobject, createobjectingroup, removeObjectRecurse
 
 doc = App.ActiveDocument
 R13type = doc.getObject("Group")
 print("R13 type offsets" if R13type else "P7 wing offsets")
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
 
 uvpolygons = doc.UVPolygons.OutList
 uvpolygonsoffsets = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsOffsets")
 uvpolygonsfoldlines = getemptyobject(doc, "App::DocumentObjectGroup", "UVPolygonsFoldlines")
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
 
 
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingflatten_barmeshfuncs import polyloopvedgeseqpolyline, polylinewithinsurfaceoffset
 
 surfacemeshdict = dict((uvpoly.Name[1:], [ P2(v.Point.x, v.Point.y)  for v in uvpoly.Shape.OrderedVertexes ])  for uvpoly in uvpolygons)
+
+#####scratch work
+#uvpoly = doc.UVPolygons.OutList[0]
+#polyloop = [ P2(v.Point.x, v.Point.y)  for v in uvpoly.Shape.OrderedVertexes ]
+#[ i  for i in range(len(polyloop))  if polyloop[i].v == 0 ], len(polyloop)
+##for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
+#irot = -10
+#Dpolyloop = polyloop[irot:] + polyloop[:irot]
+#[ i  for i in range(len(Dpolyloop))  if Dpolyloop[i].v == 0 ], len(Dpolyloop)
+#####
 
 legsampleleng = 3.0
 
@@ -69,8 +64,29 @@ def splicereplacedpolylineintoloop(polyloop, i0, i1, polyline, legsampleleng):
 			intermediatesamplelegsteps(polyline[-1], polyloop[i1+1], legsampleleng) + \
 			polyloop[i1+1:]
 
-# double folds are at 12-6 and 24-6 before the offset by 6 (all in mm!)
-offsetstretchcomponents = [ ("US1", -10, vrange[1], 6, P2(0, 2), True), 
+# This is where we program in the sections of the contour that will be offset, identified from start and end points in UV
+# If 2 offsets happen in same contour then you need to do one first and then look up the values of the offset point
+# The edgestartpt amd edgeendpt UV positions are anti-clockwise around the polyloop
+offsetstretchcomponentsRG = [ ]
+if R13type:
+	offsetstretchcomponentsRG = [ 
+		{ "patchname":"TSR", "rad":25-6.25, "spstep":P2(0,-2), "edgestartpt":P2(0,0), "edgeendpt":P2(4417.58,0), "spliceloop":True }, #Trailing edge fold
+		{ "patchname":"TSR", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,-59.84), "edgeendpt":P2(4417.58,835), "spliceloop":True }, #Tip fold
+		{ "patchname":"TSF", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,835), "edgeendpt":P2(4417.58,946.55), "spliceloop":True }, #Tip fold
+		{ "patchname":"LE3", "rad":25-6.25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,946.55), "edgeendpt":P2(4417.58,1471.55), "spliceloop":True }, #Tip fold (account for LE panel being made bigger)
+		{ "patchname":"US", "rad":25-6.25, "spstep":P2(2,0), "edgestartpt":P2(4417.58,1471.55), "edgeendpt":P2(4417.58,2286.55), "spliceloop":True }, #Tip fold
+		{ "patchname":"US", "rad":12.5-6.25, "spstep":P2(0,2), "edgestartpt":P2(4436.26,2286.55), "edgeendpt":P2(83.67,2286.55), "spliceloop":True }, #TE fold
+		#{ "patchname":"LE1", "rad":12.5-6.25-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,1148.68), "edgeendpt":P2(0,1031.09), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSF", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,1031.09), "edgeendpt":P2(0,750), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSR", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,750), "edgeendpt":P2(0,384.56), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSR", "rad":12.5-6.25, "spstep":P2(-2,0), "edgestartpt":P2(0,342.82), "edgeendpt":P2(0,-9.85), "spliceloop":True }, # Double seam allowance
+		{ "patchname":"TSF", "rad":12.5-6.25, "spstep":P2(0,2), "edgestartpt":P2(4436.1,946.55), "edgeendpt":P2(-5.5,1031.09), "spliceloop":True }, #Mylar pocket overlap
+		{ "patchname":"US", "rad":12.5-6.25, "spstep":P2(0,-2), "edgestartpt":P2(6.25,1381.34), "edgeendpt":P2(4436.2,1471.55), "spliceloop":True }, #Mylar pocket overlap
+		
+	]
+else:
+	# double folds are at 12-6 and 24-6 before the offset by 6 (all in mm!)
+	offsetstretchcomponents = [ ("US1", -10, vrange[1], 6, P2(0, 2), True), 
 							("US2", 0, vrange[1], 6, P2(0, 2), True), 
 							("TSM1", 10, vrange[0], 12, P2(0, -2), False), 
 							("TSM1", 10, vrange[0], 18, P2(0, -2), True), 
@@ -79,13 +95,10 @@ offsetstretchcomponents = [ ("US1", -10, vrange[1], 6, P2(0, 2), True),
 							("TSR", 0, vrange[0], 12, P2(0, -2), False), 
 							("TSR", 0, vrange[0], 18, P2(0, -2), True) 
 						  ]
-
-
-if R13type:
-	offsetstretchcomponents = [ ("LEI4", 10, vrange[1], 6, P2(0, 2), True), 
-								("US2", 10, vrange[1], 6, P2(0, 2), True), 
-								("LEI5", 10, vrange[0], 6, P2(0, -2), True), 
-							  ]
+	for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
+		offsetstretchcomponentsRG.append({ "patchname":patchname, "irot":irot, "vedge":vedge, "rad":rad, "spstep":spstep, "spliceloop":spliceloop })
+	
+	
 
 
 
@@ -94,29 +107,73 @@ def sevalP3(u, v):
 	return P3(p.x, p.y, p.z)
 
 def polyloopvedgeseqpolylineW(polyloop, vedge):
-    vedgeseq = [ [ ] ]
-    for i in range(len(polyloop)):
-        if abs(polyloop[i].v - vedge) < 1e-5:
-            if vedgeseq[-1]:
-                vedgeseq[-1][-1] = i
-            else:
-                vedgeseq[-1] = [i, i]
-        elif vedgeseq[-1]:
-            vedgeseq.append([])
-    if not vedgeseq[-1]:
-        vedgeseq.pop()
-    assert len(vedgeseq) == 1, vedgeseq
-    i0, i1 = vedgeseq[0]
-    assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop), "try a different value for irot")
-    return i0, i1
+	vedgeseq = [ [ ] ]
+	for i in range(len(polyloop)):
+		if abs(polyloop[i].v - vedge) < 1e-5:
+			if vedgeseq[-1]:
+				vedgeseq[-1][-1] = i
+			else:
+				vedgeseq[-1] = [i, i]
+		elif vedgeseq[-1]:
+			vedgeseq.append([])
+	if not vedgeseq[-1]:
+		vedgeseq.pop()
+	assert len(vedgeseq) == 1, vedgeseq
+	i0, i1 = vedgeseq[0]
+	assert 0 < i0 < i1 < len(polyloop) - 1, (0, i0, i1, len(polyloop), "try a different value for irot")
+	return i0, i1
+
+
+def polyloopvedgeseqpolylineBatwing(polyloop, vedge):
+	inxs = [ i  for i in range(len(polyloop))  if polyloop[i].v == vedge ]
+	i0, i1 = min(inxs), max(inxs)
+	assert (max(abs(polyloop[i].v - vedge) for i in range(i0, i1+1)) < 100), ("point edge too far from edge between", i0, i1, len(polyloop), polyloop[i0], polyloop[i1])
+	return i0, i1
+
+def selectpolyloopindex(polyloop, p):
+	i = min(range(len(polyloop)), key=lambda X: (polyloop[X] - p).Lensq())
+	dst = (polyloop[i] - p).Len()
+	assert dst < 0.5, ("too far out: edgepoint ", p, "is", dst, "away")
+	return i 
+	
+def polyloopvedgesFromEdgePoints(polyloop, osc):
+	i0 = selectpolyloopindex(polyloop, osc["edgestartpt"])
+	i1 = selectpolyloopindex(polyloop, osc["edgeendpt"])
+	print("selection range", i0, i1)
+	irot = 0
+	if i0 > i1:
+		irot = (i0 + i1)//2
+	elif i0 < 3:
+		irot = -10
+	elif i1 > len(polyloop) - 4:
+		irot = 10
+	if irot != 0:
+		polyloop = polyloop[irot:] + polyloop[:irot]
+		i0 = selectpolyloopindex(polyloop, osc["edgestartpt"])
+		i1 = selectpolyloopindex(polyloop, osc["edgeendpt"])
+		print("irot by", irot, "selection range now", i0, i1)
+		assert (i0 >= 3) and (i1 <= len(polyloop) - 4) and (i0 < i1)
+	return polyloop, i0, i1
 
 
 polylinefoldlinepenmarks = { }
-for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
+for osc in offsetstretchcomponentsRG:
+	patchname = osc["patchname"]
 	polyloop = surfacemeshdict[patchname]
-	polyloop = polyloop[irot:] + polyloop[:irot]
-	i0, i1 = polyloopvedgeseqpolylineW(polyloop, vedge)
-	print(patchname, i0, i1, rad)
+	rad = osc["rad"]
+	spstep = osc["spstep"]
+	spliceloop = osc["spliceloop"]
+
+	if R13type:
+		print("working on ", patchname, rad, spstep)
+		polyloop, i0, i1 = polyloopvedgesFromEdgePoints(polyloop, osc)
+		
+	else:
+		irot = osc["irot"]
+		vedge = osc["vedge"]
+		polyloop = polyloop[irot:] + polyloop[:irot]
+		i0, i1 = polyloopvedgeseqpolylineW(polyloop, vedge)
+		print(patchname, i0, i1, rad)
 
 	polyline = polyloop[i0:i1+1]
 	if patchname not in polylinefoldlinepenmarks:
@@ -129,7 +186,7 @@ for patchname, irot, vedge, rad, spstep, spliceloop in offsetstretchcomponents:
 	else:
 		polylinefoldlinepenmarks[patchname].append(polylineOffset)
 
-	polyloop = surfacemeshdict[patchname]
+
 
 for uvpoly in uvpolygons:
 	name = uvpoly.Name[1:]

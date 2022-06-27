@@ -18,59 +18,44 @@ from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 doc = App.ActiveDocument
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgelengths = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgelengths
+from p7modules.p7wingeval import getemptyobject, createobjectingroup
+
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+urange, vrange, seval, uvals = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.uvals
 
 from p7modules.p7wingflatten_barmeshfuncs import sliceupatnones
-
-
-def removeObjectRecurse(objname):
-	for o in doc.findObjects(Name=objname)[0].OutList:
-		removeObjectRecurse(o.Name)
-	doc.removeObject(objname)
-	
-def getemptyobject(doc, objtype, objname):
-	if doc.findObjects(Name=objname):
-		removeObjectRecurse(objname)
-		doc.recompute()
-	return doc.addObject(objtype, objname)
-
-def createobjectingroup(doc, group, objtype, objname):
-	if group == None:
-		return getemptyobject(doc, objtype, objname)
-	obj = doc.addObject(objtype, objname)
-	obj.adjustRelativeLinks(group)
-	group.addObject(obj)
-	return obj
-
-uvpolygonsGroup = doc.getObject("UVPolygonsOffsets") or doc.getObject("UVPolygons")
-print("** using", uvpolygonsGroup.Name)
-uvpolygons = uvpolygonsGroup.OutList
+from p7modules.p7wingflatten_barmeshfuncs import MeshBoundary
 
 uvtriangulations = doc.UVTriangulations.OutList
 striangulations = doc.STriangulations.OutList
 sflattened = doc.SFlattened.OutList
 uvfoldlines = doc.UVPolygonsFoldlines.OutList if doc.getObject("UVPolygonsFoldlines") else [ ]
-UVLSsewline	= [ P2(v.Point.x, v.Point.y)  for v in doc.UVLSsewline.Shape.OrderedVertexes ]  if doc.getObject("UVLSsewline")  else None 
+postpenupper = doc.getObject("postpenupper") 
+postpenlower = doc.getObject("postpenlower") 
+uvpolygonsdict = dict((uvpolygon.Name[1:], uvpolygon)  for uvpolygon in doc.UVPolygons.OutList)
 
-
-assert len(uvpolygons) == len(uvtriangulations) == len(striangulations), len(sflattened)
+assert len(uvtriangulations) == len(striangulations), len(sflattened)
 pencilg = getemptyobject(doc, "App::DocumentObjectGroup", "SPencil")
+pencilT = getemptyobject(doc, "App::DocumentObjectGroup", "TPencil")
+
+uvtriangulationboundaries = [ MeshBoundary(uvtriangulation)  for uvtriangulation in uvtriangulations ] 
 
 # get the batten detail file and set the duplicated positions for the pen cuts
-battendetailfile = os.path.join(os.path.split(__file__)[0], "batten detail TSR.dxf")
+battendetailfile = None if R13type else os.path.join(os.path.split(__file__)[0], "batten detail TSR.dxf")
 #battendetailfile = "/home/julian/repositories/HGnotebooks/wingflattening/freecad_macro_work/batten detail TSR.dxf"
 
-import ezdxf
-docbattendetail = ezdxf.readfile(battendetailfile)
-dxflines = [ k  for k in docbattendetail.entities  if "-CUT" in k.dxf.layer or "PLOT" in k.dxf.layer ]
-battendetaillines = [ ]
-for line in dxflines:
-	p0, p1 = P2(line.dxf.start.x, line.dxf.start.y), P2(line.dxf.end.x, line.dxf.end.y)
-	battendetaillines.extend([p0, p1])
-dxflinelayers = [ k.dxf.layer  for k in dxflines ]
-uvoffsettobettertriangle = P2(0, 100)
-battonuvdetailpositions = [ (P2(u, vrange[0]), P2(u, vrange[0])+uvoffsettobettertriangle)  for u in leadingedgelengths[1:-1] ]
+if battendetailfile:
+	import ezdxf
+	docbattendetail = ezdxf.readfile(battendetailfile)
+	dxflines = [ k  for k in docbattendetail.entities  if "-CUT" in k.dxf.layer or "PLOT" in k.dxf.layer ]
+	battendetaillines = [ ]
+	for line in dxflines:
+		p0, p1 = P2(line.dxf.start.x, line.dxf.start.y), P2(line.dxf.end.x, line.dxf.end.y)
+		battendetaillines.extend([p0, p1])
+	dxflinelayers = [ k.dxf.layer  for k in dxflines ]
+	uvoffsettobettertriangle = P2(0, 100)
+	battonuvdetailpositions = [ (P2(u, vrange[0]), P2(u, vrange[0])+uvoffsettobettertriangle)  for u in uvals[1:-1] ]
 
 
 def cp2t(t):
@@ -79,6 +64,11 @@ def cp2t(t):
 def cpolyuvvectorstransC(uvpts, fptsT):
 	assert len(uvpts) == len(fptsT)
 	n = len(uvpts)
+	area = abs(P2.Dot(fptsT[1] - fptsT[0], P2.APerp(fptsT[2] - fptsT[0]))*0.5)
+	uvarea = abs(P2.Dot(uvpts[1] - uvpts[0], P2.APerp(uvpts[2] - uvpts[0]))*0.5)
+	if uvarea == 0:
+		return { "uvarea":0.0 }
+
 	cpt = sum(uvpts, P2(0,0))*(1.0/n)
 	cptT = sum(fptsT, P2(0,0))*(1.0/n)
 	jp = max((abs(P2.Dot(uvpts[j] - cpt, P2.APerp(uvpts[(j+1)%n] - cpt))), j)  for j in range(n))
@@ -86,6 +76,8 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 	vj1 = uvpts[(jp[1]+1)%n] - cpt
 
 	urvec = P2(vj1.v, -vj.v)
+	#if P2.Dot(urvec, P2(vj.u, vj1.u)) == 0:
+	#	print(jp[1], uvpts, uvarea)
 	urvec = urvec*(1.0/P2.Dot(urvec, P2(vj.u, vj1.u)))
 	vrvec = P2(vj1.u, -vj.u)
 	vrvec = vrvec*(1.0/P2.Dot(vrvec, P2(vj.v, vj1.v)))
@@ -100,20 +92,23 @@ def cpolyuvvectorstransC(uvpts, fptsT):
 	# vc = p - cc["cpt"]
 	#vcp = cc["urvec"]*vc.u + cc["vrvec"]*vc.v
 	#vcs = cc["vj"]*vcp.u + cc["vj1"]*vcp.v ->  vc
-	area = abs(P2.Dot(fptsT[1] - fptsT[0], P2.APerp(fptsT[2] - fptsT[0]))*0.5)
 
 	return { "cpt":cpt, "cptT":cptT, "urvec":urvec, "vrvec":vrvec, 
-			 "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T, "area":area }
+			 "vj":vj, "vj1":vj1, "vjT":vjT, "vj1T":vj1T, "area":area, "uvarea":uvarea }
 
 uspacing, vspacing = 20, 20
 battonuvlines = [ ]
-for u in leadingedgelengths[1:-1]:
+for u in uvals[1:-1]:
 	battonuvlines.append([P2(u, v)  for v in numpy.arange(vrange[0]-vspacing, vrange[1]+vspacing, vspacing)])
+
+#uvmesh = doc.UVTriangulations.OutList[2]
+#flattenedmesh = doc.SFlattened.OutList[2]
+#uvtranslist = [ cpolyuvvectorstransC(cp2t(a.Points), cp2t(b.Points))  for a, b in zip(uvmesh.Mesh.Facets, flattenedmesh.Mesh.Facets) ]
 
 def generateTransColumns(uvmesh, flattenedmesh):
 	uvtranslist = [ cpolyuvvectorstransC(cp2t(a.Points), cp2t(b.Points))  for a, b in zip(uvmesh.Mesh.Facets, flattenedmesh.Mesh.Facets) ]
-	areacutoff = max(t["area"]  for t in uvtranslist)*0.2
-	uvtranslistC = [t  for t in uvtranslist  if t["area"]  > areacutoff]
+	uvareacutoff = max(t["uvarea"]  for t in uvtranslist)*0.2
+	uvtranslistC = [t  for t in uvtranslist  if t["uvarea"] > uvareacutoff]
 	print("discarding", len(uvtranslist)-len(uvtranslistC), "small triangles out of", len(uvtranslist))
 
 	# recreate the original partition of the urange which matches the zoning of the areas already there
@@ -182,7 +177,29 @@ def projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspaci
         battendetails.append(vcsT + cc["cptT"] + trailingedgevec*lsp.u + trailingedgevecPerp*lsp.v)
     return battendetails
 
+legsampleleng = 3.0
+def projectpostpen(postpensketch, bupperface):
+	resuv = [ ]
+	for g in postpensketch.GeometryFacadeList:
+		if not g.Construction:
+			gg = g.Geometry
+			num = int(math.ceil(gg.length()/legsampleleng) + 1)
+			params = numpy.linspace(gg.FirstParameter, gg.LastParameter, num)
+			qs = [ ]
+			for a in params:
+				p = gg.value(a)
+				q = wingeval.inverse_seval(p.x, p.y, bupperface, tol=0.001)
+				qs.append(P2(q[0], q[1]))
+			if len(qs) > 2:
+				resuv.append(qs)
+	return resuv
 
+postpenuvs = projectpostpen(postpenupper, True) + projectpostpen(postpenlower, False)
+for ip, ppuvs in enumerate(postpenuvs):
+	ws = createobjectingroup(doc, pencilT, "Part::Feature", "t%d"%ip)
+	ws.Shape = Part.makePolygon([seval(p.u, p.v)  for p in ppuvs])
+	# ws.Shape = Part.makePolygon([Vector(p.u, p.v, 1.5)  for p in ppuvs])  # to draw instead into UV space
+	print("postpenuvs", ip, len(ppuvs))
 
 
 #
@@ -201,48 +218,64 @@ for I in range(len(uvtriangulations)):
 
 	xpart, uvtranslistCcolumns = generateTransColumns(uvmesh, flattenedmesh)
 
+	# These are the offset polygons of the other patches that are 
+	# to be drawn onto this patch
 	spsFS = [ ]
 	for J in range(len(uvtriangulations)):
 		if J == I:
 			continue
-		spsJ = [ P2(v.Point.x, v.Point.y)  for v in uvpolygons[J].Shape.OrderedVertexes ]
-		spsJF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in spsJ ]
-		spsFS.extend(sliceupatnones(spsJF))
-
+		cpolys = uvtriangulationboundaries[J]
+		for cpoly in cpolys:
+			spsJ = [ P2(p.x, p.y)  for p in cpoly ]
+			spsJF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in spsJ ]
+			spsJF.append(spsJF[0])
+			spsFS.extend(sliceupatnones(spsJF))
 	for spsS in spsFS:
-		if len(spsS) > 2:
-			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
+		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "w%s_%d"%(name, len(pencilgS.OutList)))
+		ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+		ws.ViewObject.PointColor = (1.0,0.0,0.0)
+		ws.ViewObject.LineColor = (1.0,0.0,0.0)
+
+	# These are the batten details on the P7 wing only
+	if battendetailfile:
+		battendetailsegments = [ ]
+		for sporigin, sptriangle in battonuvdetailpositions:
+			battendetailsegments.extend(projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspacing, vspacing, battendetaillines))
+		for i in range(0, len(battendetailsegments), 2):
+			bdsegs = [ Vector(battendetailsegments[i][0], battendetailsegments[i][1], 1), Vector(battendetailsegments[i+1][0], battendetailsegments[i+1][1], 1) ]
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(name, len(pencilgS.OutList)))
+			ws.Shape = Part.makePolygon(bdsegs)
+			ws.ViewObject.PointColor = (0.0,0.0,1.0)
+			ws.ViewObject.LineColor = (0.0,0.0,1.0)
+
+	# These are the pencuts, upper and lower merged into one
+	for ip, ppuvs in enumerate(postpenuvs):
+		ppuvsF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in ppuvs ]
+		for iip, spsS in enumerate(sliceupatnones(ppuvsF)):
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "e%s_%d_%d"%(name, ip, iip))
 			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-			ws.ViewObject.PointColor = (1.0,0.0,0.0)
-			ws.ViewObject.LineColor = (1.0,0.0,0.0)
+			ws.ViewObject.PointColor = (1.0,0.0,1.0)
+			ws.ViewObject.LineColor = (1.0,0.0,1.0)
 
-	battendetailsegments = [ ]
-	for sporigin, sptriangle in battonuvdetailpositions:
-		battendetailsegments.extend(projectdetaillinesF(sporigin, sptriangle, xpart, uvtranslistCcolumns, uspacing, vspacing, battendetaillines))
-	for i in range(0, len(battendetailsegments), 2):
-		bdsegs = [ Vector(battendetailsegments[i][0], battendetailsegments[i][1], 1), Vector(battendetailsegments[i+1][0], battendetailsegments[i+1][1], 1) ]
-		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "b%s_%d"%(name, len(pencilgS.OutList)))
-		ws.Shape = Part.makePolygon(bdsegs)
-		ws.ViewObject.PointColor = (0.0,0.0,1.0)
-		ws.ViewObject.LineColor = (0.0,0.0,1.0)
-
-	if UVLSsewline:
-		UVLSsewlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in UVLSsewline ]
-		for spsS in sliceupatnones(UVLSsewlineF):
-			if len(spsS) > 2:
-				ws = createobjectingroup(doc, pencilgS, "Part::Feature", "e%s_%d"%(name, len(pencilgS.OutList)))
-				ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-				ws.ViewObject.PointColor = (1.0,0.0,1.0)
-				ws.ViewObject.LineColor = (1.0,0.0,1.0)
-		
-
+	# these are the fold lines
 	uvfoldlineLFS= [ ]
 	for uvfoldline in uvfoldlineL:
 		battonlineF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in uvfoldline ]
 		uvfoldlineLFS.extend(sliceupatnones(battonlineF))
 	for spsS in uvfoldlineLFS:
-		if len(spsS) > 2:
-			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "l%s_%d"%(name, len(pencilgS.OutList)))
+		ws = createobjectingroup(doc, pencilgS, "Part::Feature", "l%s_%d"%(name, len(pencilgS.OutList)))
+		ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
+		ws.ViewObject.PointColor = (0.0,0.8,0.0)
+		ws.ViewObject.LineColor = (0.0,0.8,0.0)
+		
+	# this is the LE edge original shape to use as a template to cut
+	if R13type and (name == "LE1M" or name == "LE2M" or name == "LE3M"):
+		originalpoly = [ P2(v.Point.x, v.Point.y)  for v in uvpolygonsdict[name[:-1]].Shape.OrderedVertexes ]
+		originalpolyF = [ projectspbarmeshF(sp, xpart, uvtranslistCcolumns)  for sp in originalpoly ]
+		for spsS in sliceupatnones(originalpolyF):
+			ws = createobjectingroup(doc, pencilgS, "Part::Feature", "cut%s_%d"%(name, len(pencilgS.OutList)))
 			ws.Shape = Part.makePolygon([Vector(p[0], p[1], 1.0)  for p in spsS])
-			ws.ViewObject.PointColor = (0.0,0.8,0.0)
-			ws.ViewObject.LineColor = (0.0,0.8,0.0)
+			ws.ViewObject.PointColor = (0.8,0.8,0.0)
+			ws.ViewObject.LineColor = (0.8,0.8,0.0)
+		
+

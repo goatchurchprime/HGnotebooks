@@ -14,18 +14,26 @@ sys.path.append(os.path.split(__file__)[0])
 
 from p7modules.barmesh.basicgeo import P2, P3, Partition1, Along, I1
 from p7modules.p7wingeval import WingEval
-from p7modules.p7wingeval import getemptyobject, createobjectingroup
+from p7modules.p7wingeval import getemptyobject, createobjectingroup, getemptyobject,uvrectangle
 
 doc = App.ActiveDocument
+
+R13type = True
 
 cutlinesketch = doc.cutlinesketch
 nnonconstructionlines = sum(int(not g.Construction)  for g in doc.cutlinesketch.GeometryFacadeList)
 if nnonconstructionlines != 0:
 	print("cutlinesketch contains %d non-construction lines" % nnonconstructionlines)
-	print("Creating junk sketch for testing instead")
-	cutlinesketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch_Junk")
+	print("Creating new cutlinesketch")
+	old = doc.copyObject(cutlinesketch,'cutlinesketch_old')
+	old.Visibility = False
+	cutlinesketch = getemptyobject(doc, "Sketcher::SketchObject", "cutlinesketch")
+	wingeval = WingEval(doc.getObject("Group").OutList, R13type)
+	urange,vrange = wingeval.urange, wingeval.vrange
+	cutlinesketch = uvrectangle(urange, vrange, "cutlinesketch",doc)
 
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
 
 legsampleleng = 3.0
 def projectprecut(cutlinesketch, precutsketch, bupperface):
@@ -47,20 +55,3 @@ def projectprecut(cutlinesketch, precutsketch, bupperface):
 projectprecut(cutlinesketch, doc.precutupper, True)
 projectprecut(cutlinesketch, doc.precutlower, False)
 
-"""
-cs = doc.precutlower
-cs = doc.Sketch
-gfs = cs.GeometryFacadeList
-geoindexes = { }
-if 1:
-	for i in range(len(gfs)):
-		g = gfs[i]
-		if not g.Construction:
-			geoindexes[i] = len(geoindexes)
-	for c in cs.Constraints:
-		if c.First in geoindexes and c.Second in geoindexes:
-			print(c)
-		else:
-			print(".", c)
-"""
-		

@@ -16,12 +16,13 @@ sys.path.append(os.path.split(__file__)[0])
 doc = App.ActiveDocument
 
 from p7modules.p7wingeval import WingEval
-wingeval = WingEval(doc.getObject("SectionGroup").OutList)
-urange, vrange, seval, leadingedgepoints = wingeval.urange, wingeval.vrange, wingeval.seval, wingeval.leadingedgepoints
+R13type = doc.getObject("Group")
+wingeval = WingEval(doc.getObject("Group" if R13type else "SectionGroup").OutList, R13type)
+urange, vrange, seval = wingeval.urange, wingeval.vrange, wingeval.seval
 uvals, sections = wingeval.uvals, wingeval.sections
 
 print("Rangess", urange, vrange)
-from p7modules.p7wingeval import sections, leadingedgepoints, uvals
+from p7modules.p7wingeval import sections, uvals
 
 def paramintconv(u, uvals):
 	j0, j1 = 0, len(uvals)-1
